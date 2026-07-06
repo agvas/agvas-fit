@@ -771,13 +771,15 @@ function updateDriveUI(){
 }
 
 // ── CONEXIÓN: OAuth con redirect — funciona en GitHub Pages ──
-function conectarDrive(){
-  const cid = document.getElementById('drive-client-id').value.trim();
-  if(!cid){ toast('Pegá tu Client ID primero'); return; }
-  driveClientId = cid;
-  saveDriveConfig();
+function conectarDrive(silencioso = false){
+  if(!driveClientId && !silencioso){
+    const cid = document.getElementById('drive-client-id').value.trim();
+    if(!cid){ toast('Pegá tu Client ID primero'); return; }
+    driveClientId = cid;
+    saveDriveConfig();
+  }
+  if(!driveClientId) return;
 
-  // La página actual es el redirect_uri — Google devuelve el token en el hash #access_token=...
   const redirectUri = window.location.href.split('#')[0].split('?')[0];
 
   const params = new URLSearchParams({
@@ -786,21 +788,44 @@ function conectarDrive(){
     response_type: 'token',
     scope:         DRIVE_SCOPES,
     include_granted_scopes: 'true',
-    prompt:        'select_account',
     state:         'agvasfit_oauth'
   });
 
-  // Guardar que estamos esperando el token
-  localStorage.setItem('agvasfit_oauth_pending', '1');
+  // prompt=none → reconexión silenciosa sin mostrar pantalla a Google
+  // prompt=select_account → flujo normal con elección de cuenta
+  if(silencioso){
+    params.set('prompt', 'none');
+    // Guardar que es reconexión silenciosa para manejar errores
+    localStorage.setItem('agvasfit_oauth_silent', '1');
+  } else {
+    params.set('prompt', 'select_account');
+    localStorage.removeItem('agvasfit_oauth_silent');
+  }
 
-  // Redirigir a Google OAuth
+  localStorage.setItem('agvasfit_oauth_pending', '1');
   window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
 }
 
 // ── Leer token del hash cuando Google nos redirija de vuelta ──
 function checkOAuthCallback(){
-  const hash = window.location.hash;
-  if(!hash || !hash.includes('access_token')) return;
+  const hash  = window.location.hash;
+  const isSilent = localStorage.getItem('agvasfit_oauth_silent') === '1';
+
+  // Limpiar flags
+  localStorage.removeItem('agvasfit_oauth_pending');
+  localStorage.removeItem('agvasfit_oauth_silent');
+
+  if(!hash) return;
+
+  // Error en reconexión silenciosa — no molestar al usuario, simplemente
+  // dejamos el botón en gris para que conecte manualmente cuando quiera
+  if(hash.includes('error=') && isSilent){
+    history.replaceState(null, '', window.location.pathname);
+    updateDriveUI();
+    return;
+  }
+
+  if(!hash.includes('access_token')) return;
 
   const params = new URLSearchParams(hash.replace('#',''));
   const token  = params.get('access_token');
@@ -808,35 +833,51 @@ function checkOAuthCallback(){
   const state  = params.get('state');
 
   if(token && state === 'agvasfit_oauth'){
-    // Limpiar el hash de la URL sin recargar
     history.replaceState(null, '', window.location.pathname);
-    localStorage.removeItem('agvasfit_oauth_pending');
-    recibirToken(token, exp);
+    recibirToken(token, exp, isSilent);
   }
 }
 
-async function recibirToken(token, expiresIn){
+async function recibirToken(token, expiresIn, silencioso = false){
   driveAccessToken = token;
-  driveTokenExpiry = Date.now() + (parseInt(expiresIn)||3600)*1000;
+  const expSecs = parseInt(expiresIn) || 3600;
+  driveTokenExpiry = Date.now() + expSecs * 1000;
 
-  // Obtener email
-  try{
-    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
-      headers:{ Authorization:'Bearer '+token }
-    });
-    const u = await r.json();
-    driveUser = u.email||'';
-  }catch(e){}
+  // Obtener email (solo si no lo tenemos ya)
+  if(!driveUser){
+    try{
+      const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
+        headers:{ Authorization:'Bearer '+token }
+      });
+      const u = await r.json();
+      driveUser = u.email || '';
+    }catch(e){}
+  }
 
   saveDriveConfig();
   updateDriveUI();
-  closeModal('modal-drive');
-  toast('¡Conectado a Drive! Sincronizando...');
-  syncDrive();
 
-  // Renovar token automáticamente antes de que expire
-  const renovarEn = Math.max(0, (driveTokenExpiry - Date.now()) - 120000);
-  setTimeout(()=>{ driveAccessToken=null; updateDriveUI(); }, renovarEn);
+  if(!silencioso){
+    // Reconexión manual: cerrar modal y notificar
+    closeModal('modal-drive');
+    toast('¡Conectado a Drive! Sincronizando...');
+    syncDrive();
+  } else {
+    // Reconexión silenciosa: solo sincronizar sin molestar
+    syncDrive();
+  }
+
+  // Programar reconexión silenciosa automática 2 minutos antes de que expire
+  const renovarEn = Math.max(0, expSecs * 1000 - 120000);
+  setTimeout(() => renovarSilencioso(), renovarEn);
+}
+
+// ── Reconexión silenciosa automática antes de que expire el token ──
+function renovarSilencioso(){
+  if(!driveClientId) return;
+  // Guardamos estado de la app antes de redirigir
+  saveDB();
+  conectarDrive(true); // silencioso=true
 }
 
 function desconectarDrive(){
@@ -1620,6 +1661,13 @@ function refreshSelects(){
 function init(){
   loadDB();
   checkOAuthCallback(); // leer token si Google nos acaba de redirigir
+
+  // Si hay Client ID guardado pero no hay token → intentar reconexión silenciosa
+  // Solo si NO venimos de un callback (evitar loop)
+  if(driveClientId && !driveAccessToken && !window.location.hash.includes('access_token')){
+    // Pequeño delay para que la app cargue primero visualmente
+    setTimeout(() => conectarDrive(true), 800);
+  }
   if(!db.clientes.length){
     db.clientes=[
       {id:'c1',nombre:'Marcos Vidal',edad:27,peso:79,objetivo:'Hipertrofia',nivel:'Intermedio',lesiones:'Molestia leve hombro der.',creado:'2025-06-03'},
