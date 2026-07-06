@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>AGVAS-FIT</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --blue:#1a6fd4; --blue-light:#e8f1fd; --green:#0fa870; --green-light:#e6f7f1;
+  --amber:#e08c00; --amber-light:#fef3dc; --red:#d63030; --red-light:#fdeaea;
+  --bg:#f0f0ee; --surface:#ffffff; --surface2:#f7f7f5;
+  --text:#111110; --text2:#4a4a47; --text3:#888884; --border:#e0dfd8;
+  --radius:14px; --tap:52px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:16px}
+body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
+
+/* TOPBAR */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px 10px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.topbar-title{font-size:17px;font-weight:600;flex:1}
+.topbar-sub{font-size:13px;color:var(--text3)}
+
+/* BOTTOM NAV */
+.bottomnav{background:var(--surface);border-top:1px solid var(--border);display:flex;position:sticky;bottom:0;z-index:100}
+.nav-btn{flex:1;padding:10px 4px 12px;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text3);font-size:10px;font-weight:500}
+.nav-btn.active{color:var(--blue)}
+.nav-btn svg{width:22px;height:22px;stroke-width:1.8}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:var(--blue);display:none}
+.nav-btn.active .nav-dot{display:block}
+
+/* SCREENS */
+.screen{display:none;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:80px}
+.screen.active{display:flex}
+.pad{padding:16px}
+
+/* CARDS */
+.card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;margin-bottom:12px}
+.card-head{padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-label{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
+.card-body{padding:14px 16px}
+
+/* BUTTONS */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:var(--tap);border-radius:var(--radius);border:none;font-size:16px;font-weight:600;cursor:pointer;transition:opacity .1s,transform .08s;width:100%}
+.btn:active{opacity:.82;transform:scale(.98)}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-secondary{background:var(--blue-light);color:var(--blue)}
+.btn-success{background:var(--green);color:#fff}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.btn-sm{min-height:40px;font-size:14px;border-radius:10px}
+.btn-danger{background:var(--red-light);color:var(--red)}
+
+/* INPUTS */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;min-height:var(--tap);padding:0 14px;border:1.5px solid var(--border);border-radius:12px;font-size:16px;color:var(--text);background:var(--surface2);appearance:none;-webkit-appearance:none}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23888884' stroke-width='2'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+.field textarea{min-height:80px;padding:12px 14px;resize:none}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue);background:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-blue{background:var(--blue-light);color:var(--blue)}
+.badge-green{background:var(--green-light);color:#0a7a52}
+.badge-amber{background:var(--amber-light);color:var(--amber)}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-gray{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
+
+/* SERIES */
+.serie-row{display:grid;grid-template-columns:32px 1fr 1fr 64px;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.serie-row:last-child{border-bottom:none}
+.serie-num{font-size:13px;font-weight:700;color:var(--text3);text-align:center}
+.serie-input{min-height:44px;padding:0 10px;border:1.5px solid var(--border);border-radius:10px;font-size:17px;font-weight:600;color:var(--text);background:var(--surface2);width:100%;text-align:center}
+.serie-input:focus{outline:none;border-color:var(--blue);background:#fff}
+.rir-select{min-height:44px;padding:0 6px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-weight:600;color:var(--text);background:var(--surface2);width:100%;text-align:center;appearance:none;-webkit-appearance:none}
+.rir-select:focus{outline:none;border-color:var(--blue)}
+.rir-0{border-color:var(--red)!important;color:var(--red)!important}
+.rir-1{border-color:var(--amber)!important;color:var(--amber)!important}
+.rir-2{border-color:var(--green)!important;color:#0a7a52!important}
+
+/* SENSACIONES */
+.sens-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
+.sens-btn{min-height:46px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);font-size:15px;font-weight:700;color:var(--text3);cursor:pointer;transition:all .1s}
+.sens-btn.sel-energia{background:var(--blue-light);border-color:var(--blue);color:var(--blue)}
+.sens-btn.sel-fatiga{background:var(--red-light);border-color:var(--red);color:var(--red)}
+
+/* CLIENTES HOME */
+.client-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.client-row:last-child{border-bottom:none}
+.client-row:active{background:var(--bg)}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--blue);flex-shrink:0}
+.client-info{flex:1;min-width:0}
+.client-name{font-size:16px;font-weight:600;color:var(--text)}
+.client-meta{font-size:13px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ASISTENCIA */
+.asist-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.asist-row:last-child{border-bottom:none}
+.asist-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot-present{background:var(--green)}
+
+/* STATS */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+.stat-val{font-size:26px;font-weight:700;color:var(--text);line-height:1}
+.stat-lbl{font-size:12px;color:var(--text3);margin-top:4px}
+
+/* HISTORIAL */
+.hist-item{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.hist-item:active{background:var(--bg)}
+.hist-date{font-size:12px;color:var(--text3);margin-bottom:3px}
+.hist-title{font-size:15px;font-weight:600;color:var(--text)}
+.hist-meta{font-size:13px;color:var(--text3);margin-top:2px}
+.hist-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+
+/* PROGRESS BAR */
+.prog-row{margin-bottom:10px}
+.prog-label{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:5px}
+.prog-track{height:8px;background:var(--bg);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;background:var(--blue)}
+
+/* EXERCISE CHIPS */
+.ej-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.ej-chips::-webkit-scrollbar{display:none}
+.ej-chip{display:inline-flex;align-items:center;white-space:nowrap;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .1s;flex-shrink:0}
+.ej-chip.active{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* CHART WRAPPER */
+.chart-wrap{position:relative;width:100%;height:220px;padding:4px 0}
+
+/* LIVE */
+.live-pill{display:inline-flex;align-items:center;gap:5px;background:#fff3e0;border:1px solid #f0a500;border-radius:20px;padding:4px 12px;font-size:13px;font-weight:600;color:var(--amber)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* MAQUINAS */
+.maquina-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s}
+.maquina-card:active{box-shadow:0 0 0 2px var(--blue)}
+.maquina-img{width:100%;height:140px;object-fit:cover;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:40px}
+.maquina-img img{width:100%;height:140px;object-fit:cover}
+.maquina-info{padding:10px 12px}
+.maquina-name{font-size:14px;font-weight:700;color:var(--text)}
+.maquina-meta{font-size:12px;color:var(--text3);margin-top:2px}
+.maquinas-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+
+/* UPLOAD AREA */
+.upload-area{border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color .15s;background:var(--surface2)}
+.upload-area:active{border-color:var(--blue)}
+.upload-area-icon{font-size:32px;margin-bottom:8px}
+.upload-area-text{font-size:14px;font-weight:600;color:var(--text2)}
+.upload-area-sub{font-size:12px;color:var(--text3);margin-top:3px}
+.upload-preview{width:100%;height:160px;object-fit:cover;border-radius:10px;margin-top:10px}
+
+/* SESSION HEADER */
+.session-header{background:var(--blue);color:#fff;padding:16px;display:flex;align-items:center;gap:12px}
+.session-header .avatar{background:rgba(255,255,255,.2);color:#fff}
+.session-info{flex:1}
+.session-name{font-size:17px;font-weight:700}
+.session-timer{font-size:13px;opacity:.85;margin-top:2px}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal-sheet{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px 36px;width:100%;max-height:90vh;overflow-y:auto;animation:slideup .25s ease}
+@keyframes slideup{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:16px}
+
+/* SECTION HEADER */
+.section-title{font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.divider{height:1px;background:var(--border);margin:12px 0}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty-text{font-size:15px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.empty-sub{font-size:13px}
+
+/* SEMANA DIVIDER */
+.semana-div{padding:8px 16px 4px;font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;background:var(--bg)}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#111;color:#fff;padding:12px 20px;border-radius:30px;font-size:14px;font-weight:600;opacity:0;transition:all .25s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* DRIVE STATUS */
+.drive-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.drive-desconectado{background:#f0f0ee;color:#888884;border:1px solid #e0dfd8}
+.drive-conectado{background:#e6f7f1;color:#0a7a52;border:1px solid #0fa870}
+.drive-sincronizando{background:#fef3dc;color:#e08c00;border:1px solid #e08c00}
+.drive-error{background:#fdeaea;color:#d63030;border:1px solid #d63030}
+.drive-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sync-spin{animation:spin .8s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="font-size:20px">💪</div>
+  <div style="flex:1">
+    <div class="topbar-title" id="topbar-title">AGVAS-FIT</div>
+    <div class="topbar-sub" id="topbar-sub">Sistema de entrenamiento</div>
+  </div>
+  <button class="drive-pill drive-desconectado" id="drive-btn" onclick="openModal('modal-drive')">
+    <svg class="drive-dot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <span id="drive-label">Drive</span>
+  </button>
+</div>
+
+<!-- ══ SCREEN HOME ══ -->
+<div class="screen active" id="screen-home">
+  <div class="pad">
+    <div class="section-title">Acción rápida</div>
+    <button class="btn btn-primary" style="margin-bottom:16px" onclick="openNuevaSesion()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:22px;height:22px"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+      Iniciar entrenamiento
+    </button>
+    <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Clientes</span>
+      <span style="color:var(--blue);font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0" onclick="openModal('modal-nuevo-cliente')">+ Agregar</span>
+    </div>
+    <div class="card" id="home-clientes"></div>
+    <div class="section-title" style="margin-top:4px">Última sesión</div>
+    <div id="home-ultima"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN SESIÓN ══ -->
+<div class="screen" id="screen-sesion">
+  <div class="session-header">
+    <div class="avatar" id="sh-avatar">--</div>
+    <div class="session-info">
+      <div class="session-name" id="sh-name">Cliente</div>
+      <div class="session-timer" id="sh-timer">⏱ 00:00 · 0 series</div>
+    </div>
+    <div class="live-pill"><div class="live-dot"></div>En vivo</div>
+  </div>
+  <div class="pad">
+    <div class="card" id="ej-card">
+      <div class="card-head">
+        <div class="card-label" id="ej-num-label">Ejercicio 1</div>
+        <button class="btn btn-sm btn-ghost" style="width:auto;padding:0 14px" onclick="openModalEjercicio()">Cambiar</button>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div id="ej-maquina-thumb" style="display:none;width:52px;height:52px;border-radius:8px;overflow:hidden;flex-shrink:0;border:1px solid var(--border)">
+            <img id="ej-maquina-img" src="" style="width:100%;height:100%;object-fit:cover">
+          </div>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:600" id="ej-nombre-display">Sin ejercicio</div>
+            <div style="font-size:13px;color:var(--text3);margin-top:2px" id="ej-meta-display"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-label">Series</div>
+        <div id="vol-display" style="font-size:13px;font-weight:600;color:var(--blue)">Vol: 0 kg</div>
+      </div>
+      <div style="padding:0 16px">
+        <div style="display:grid;grid-template-columns:32px 1fr 1fr 64px;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div></div>
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-align:center">PESO kg</div>
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-align:center">REPS</div>
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-align:center">RIR</div>
+        </div>
+        <div id="series-live"></div>
+      </div>
+      <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
+        <button class="btn btn-sm btn-secondary" onclick="addSerieViva()">+ Serie</button>
+        <button class="btn btn-sm btn-ghost" onclick="openModal('modal-sensaciones')">Sensaciones</button>
+      </div>
+    </div>
+    <div id="hint-progresion" style="display:none"></div>
+    <div class="card">
+      <div class="card-body">
+        <div class="field" style="margin:0">
+          <label>Notas del ejercicio</label>
+          <textarea id="notas-ejercicio" placeholder="Técnica, molestias, observaciones..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:12px">
+      <button class="btn btn-sm btn-ghost" onclick="agregarOtroEjercicio()">+ Ejercicio</button>
+      <button class="btn btn-sm btn-success" onclick="finalizarSesion()">✓ Finalizar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN EQUIPOS ══ -->
+<div class="screen" id="screen-equipos">
+  <div class="pad">
+    <div class="section-title">Biblioteca de equipos</div>
+    <button class="btn btn-primary" style="margin-bottom:16px" onclick="openModal('modal-nueva-maquina')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:20px;height:20px"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+      Agregar equipo / máquina
+    </button>
+    <div id="maquinas-grid-cont"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN HISTORIAL ══ -->
+<div class="screen" id="screen-historial">
+  <div class="pad">
+    <div class="field">
+      <select id="hist-filtro" onchange="renderHistorial()">
+        <option value="">Todos los clientes</option>
+      </select>
+    </div>
+  </div>
+  <div id="historial-list"></div>
+</div>
+
+<!-- ══ SCREEN PROGRESIÓN ══ -->
+<div class="screen" id="screen-progresion">
+  <div class="pad">
+    <div class="field">
+      <select id="prog-cliente-sel" onchange="renderProgresion()">
+        <option value="">Seleccionar cliente</option>
+      </select>
+    </div>
+    <div id="prog-content">
+      <div class="empty"><div class="empty-text">Seleccioná un cliente</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BOTTOM NAV ══ -->
+<div class="bottomnav">
+  <button class="nav-btn active" onclick="goScreen('home',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Inicio<div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" onclick="goScreen('equipos',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+    Equipos<div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" onclick="goScreen('historial',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Historial<div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" onclick="goScreen('progresion',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Progresión<div class="nav-dot"></div>
+  </button>
+</div>
+
+<!-- ══ MODAL: DRIVE ══ -->
+<div class="modal-overlay" id="modal-drive">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">☁️ Google Drive Backup</div>
+
+    <!-- Estado actual -->
+    <div id="drive-estado-card" style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="drive-estado-icon" style="font-size:24px">🔴</div>
+        <div>
+          <div style="font-size:14px;font-weight:700" id="drive-estado-titulo">Sin conectar</div>
+          <div style="font-size:12px;color:var(--text3)" id="drive-estado-sub">Configurá tu Client ID para activar el respaldo</div>
+        </div>
+      </div>
+      <div id="drive-ultimo-sync" style="font-size:12px;color:var(--text3);margin-top:8px;display:none"></div>
+    </div>
+
+    <!-- Config Client ID -->
+    <div id="drive-config-section">
+      <div class="field">
+        <label>Google Client ID
+          <span style="font-size:11px;color:var(--text3);font-weight:400"> (de Google Cloud Console)</span>
+        </label>
+        <input type="text" id="drive-client-id" placeholder="123456789-abc.apps.googleusercontent.com" style="font-size:13px">
+      </div>
+      <div style="font-size:12px;color:var(--text3);background:var(--blue-light);border-radius:8px;padding:10px;margin-bottom:12px;line-height:1.6">
+        📋 <strong>URL de esta app:</strong><br>
+        <span id="drive-url-display" style="font-size:11px;word-break:break-all;color:var(--blue)"></span><br><br>
+        Esta URL debe estar registrada en Google Cloud Console como <strong>Origen autorizado</strong> y como <strong>URI de redireccionamiento</strong>.
+      </div>
+      <button class="btn btn-primary" onclick="conectarDrive()">Conectar con Google Drive</button>
+    </div>
+
+    <!-- Acciones cuando está conectado -->
+    <div id="drive-conectado-section" style="display:none">
+      <button class="btn btn-success" onclick="syncDriveManual()" style="margin-bottom:10px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:18px;height:18px"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" stroke-width="2"/></svg>
+        Sincronizar ahora
+      </button>
+      <button class="btn btn-secondary" onclick="restaurarDesdeDrive()" style="margin-bottom:10px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:18px;height:18px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Restaurar datos desde Drive
+      </button>
+      <button class="btn btn-ghost" onclick="desconectarDrive()" style="margin-bottom:10px">Desconectar cuenta</button>
+    </div>
+
+    <button class="btn btn-ghost" onclick="closeModal('modal-drive')" style="margin-top:4px">Cerrar</button>
+  </div>
+</div>
+
+<!-- ══ MODAL: NUEVO CLIENTE ══ -->
+<div class="modal-overlay" id="modal-nuevo-cliente">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-cliente-titulo">Nuevo cliente</div>
+    <div class="field"><label>Nombre completo</label><input type="text" id="cl-nombre" placeholder="Ej: María González"></div>
+    <div class="grid2">
+      <div class="field"><label>Edad</label><input type="number" id="cl-edad" placeholder="25" min="14" max="80" inputmode="numeric"></div>
+      <div class="field"><label>Peso (kg)</label><input type="number" id="cl-peso" placeholder="70" min="30" max="250" step="0.5" inputmode="decimal"></div>
+    </div>
+    <div class="field"><label>Objetivo</label>
+      <select id="cl-objetivo">
+        <option>Hipertrofia</option><option>Fuerza</option><option>Pérdida de grasa</option>
+        <option>Rendimiento</option><option>Salud / movilidad</option><option>Recomposición</option>
+      </select>
+    </div>
+    <div class="field"><label>Nivel</label>
+      <select id="cl-nivel"><option>Principiante</option><option>Intermedio</option><option>Avanzado</option></select>
+    </div>
+    <div class="field"><label>Lesiones o patologías</label><input type="text" id="cl-lesiones" placeholder="Ninguna"></div>
+    <div class="grid2">
+      <button class="btn btn-ghost" onclick="closeModal('modal-nuevo-cliente');resetModalCliente()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCliente()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: DETALLE CLIENTE ══ -->
+<div class="modal-overlay" id="modal-detalle-cliente">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="detalle-cliente-content"></div>
+    <div class="grid2" style="margin-top:14px">
+      <button class="btn btn-ghost btn-sm" onclick="editarClienteActual()">Editar</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('modal-detalle-cliente');irAProgresion(clienteEditandoId)">Ver progresión</button>
+    </div>
+    <button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="eliminarClienteActual()">Eliminar cliente</button>
+  </div>
+</div>
+
+<!-- ══ MODAL: NUEVA SESIÓN ══ -->
+<div class="modal-overlay" id="modal-nueva-sesion">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">¿Con quién entrenás hoy?</div>
+    <div class="field"><label>Cliente</label><select id="ns-cliente"><option value="">Seleccionar...</option></select></div>
+    <div class="field"><label>Rutina del día</label>
+      <select id="ns-rutina">
+        <option>Pecho / Tríceps</option><option>Espalda / Bíceps</option>
+        <option>Piernas</option><option>Hombros / Bíceps</option>
+        <option>Cuerpo completo</option><option>Cardio / Funcional</option><option>Libre</option>
+      </select>
+    </div>
+    <div class="field"><label>Fecha</label><input type="date" id="ns-fecha"></div>
+    <div class="grid2">
+      <button class="btn btn-ghost" onclick="closeModal('modal-nueva-sesion')">Cancelar</button>
+      <button class="btn btn-primary" onclick="iniciarSesion()">Empezar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: EJERCICIO ══ -->
+<div class="modal-overlay" id="modal-ejercicio">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Ejercicio</div>
+    <div class="field"><label>Nombre del ejercicio</label><input type="text" id="ej-nombre-input" placeholder="Ej: Press banca barra"></div>
+    <div class="field"><label>Grupo muscular</label>
+      <select id="ej-grupo">
+        <option>Pecho</option><option>Espalda</option><option>Hombros</option>
+        <option>Bíceps</option><option>Tríceps</option><option>Cuádriceps</option>
+        <option>Isquios / Glúteos</option><option>Pantorrillas</option><option>Core</option>
+      </select>
+    </div>
+    <div class="field"><label>Máquina / equipo</label>
+      <select id="ej-maquina-sel" onchange="previewMaquinaEnEjercicio()">
+        <option value="">Sin máquina / barra / mancuernas</option>
+      </select>
+    </div>
+    <!-- Preview de foto de máquina -->
+    <div id="ej-maquina-preview" style="display:none;margin-bottom:12px">
+      <img id="ej-maquina-prev-img" src="" style="width:100%;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--border)">
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Reps mín</label><input type="number" id="ej-reps-min" placeholder="8" min="1" inputmode="numeric"></div>
+      <div class="field"><label>Reps máx</label><input type="number" id="ej-reps-max" placeholder="12" min="1" inputmode="numeric"></div>
+    </div>
+    <div class="grid2">
+      <button class="btn btn-ghost" onclick="closeModal('modal-ejercicio')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarEjercicio()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: SENSACIONES ══ -->
+<div class="modal-overlay" id="modal-sensaciones">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Sensaciones</div>
+    <div class="field"><label>Energía <span style="color:var(--text3);font-weight:400">(1=muy baja · 5=excelente)</span></label>
+      <div class="sens-grid" id="sens-energia-btns">
+        <button class="sens-btn" onclick="selSens('energia',1,this)">1</button>
+        <button class="sens-btn" onclick="selSens('energia',2,this)">2</button>
+        <button class="sens-btn" onclick="selSens('energia',3,this)">3</button>
+        <button class="sens-btn" onclick="selSens('energia',4,this)">4</button>
+        <button class="sens-btn" onclick="selSens('energia',5,this)">5</button>
+      </div>
+    </div>
+    <div class="field" style="margin-top:14px"><label>Fatiga muscular <span style="color:var(--text3);font-weight:400">(1=fresco · 5=agotado)</span></label>
+      <div class="sens-grid" id="sens-fatiga-btns">
+        <button class="sens-btn" onclick="selSens('fatiga',1,this)">1</button>
+        <button class="sens-btn" onclick="selSens('fatiga',2,this)">2</button>
+        <button class="sens-btn" onclick="selSens('fatiga',3,this)">3</button>
+        <button class="sens-btn" onclick="selSens('fatiga',4,this)">4</button>
+        <button class="sens-btn" onclick="selSens('fatiga',5,this)">5</button>
+      </div>
+    </div>
+    <div class="field" style="margin-top:14px"><label>Dolor / molestia</label><input type="text" id="sens-dolor" placeholder="Ej: Hombro derecho · 3/10"></div>
+    <button class="btn btn-primary" onclick="guardarSensaciones()">Guardar</button>
+  </div>
+</div>
+
+<!-- ══ MODAL: NUEVA MÁQUINA ══ -->
+<div class="modal-overlay" id="modal-nueva-maquina">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-maquina-titulo">Agregar equipo</div>
+    <div class="field"><label>Nombre del equipo / máquina</label><input type="text" id="mq-nombre" placeholder="Ej: Press inclinado Hammer"></div>
+    <div class="field"><label>Tipo</label>
+      <select id="mq-tipo">
+        <option>Máquina Hammer</option><option>Máquina guiada</option>
+        <option>Polea alta</option><option>Polea baja</option><option>Polea cruce</option>
+        <option>Barra olímpica</option><option>Mancuernas</option><option>Barra Z</option>
+        <option>Kettlebell</option><option>Banco plano</option><option>Banco inclinado</option>
+        <option>Peso corporal</option><option>Otro</option>
+      </select>
+    </div>
+    <div class="field"><label>Grupo muscular principal</label>
+      <select id="mq-grupo">
+        <option>Pecho</option><option>Espalda</option><option>Hombros</option>
+        <option>Bíceps</option><option>Tríceps</option><option>Cuádriceps</option>
+        <option>Isquios / Glúteos</option><option>Core</option><option>Múltiple</option>
+      </select>
+    </div>
+    <div class="field"><label>Notas / configuración</label><input type="text" id="mq-notas" placeholder="Ej: Agarre neutro, asiento posición 3"></div>
+
+    <!-- FOTO DE LA MÁQUINA -->
+    <div class="field">
+      <label>Foto de la máquina</label>
+      <div class="upload-area" onclick="document.getElementById('mq-foto-input').click()">
+        <div class="upload-area-icon">📷</div>
+        <div class="upload-area-text">Tocar para agregar foto</div>
+        <div class="upload-area-sub">Cámara o galería</div>
+      </div>
+      <input type="file" id="mq-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewMaquinaFoto(this)">
+      <img id="mq-foto-preview" class="upload-preview" src="" style="display:none">
+    </div>
+    <div class="grid2">
+      <button class="btn btn-ghost" onclick="closeModal('modal-nueva-maquina');resetModalMaquina()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarMaquina()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: DETALLE MÁQUINA ══ -->
+<div class="modal-overlay" id="modal-detalle-maquina">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="detalle-maquina-content"></div>
+    <div class="grid2" style="margin-top:10px">
+      <button class="btn btn-danger btn-sm" onclick="eliminarMaquinaActual()">Eliminar</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-detalle-maquina')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: DETALLE SESIÓN ══ -->
+<div class="modal-overlay" id="modal-detalle-sesion">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="detalle-sesion-content"></div>
+    <button class="btn btn-ghost" onclick="closeModal('modal-detalle-sesion')" style="margin-top:8px">Cerrar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════ DB ══════════════
+let db = { clientes:[], sesiones:[], maquinas:[] };
+function loadDB(){ try{ const r=localStorage.getItem('aguvari_v3'); if(r) db=JSON.parse(r); }catch(e){} }
+
+// ══════════════ SESSION STATE ══════════════
+let sesionActiva=null, ejercicioActual=null;
+let sensActiva={energia:3,fatiga:2};
+let timerInterval=null, timerStart=null, totalSeries=0;
+let maquinaEditandoId=null;
+let activeChart=null;
+
+// ══════════════ UTILS ══════════════
+function hoy(){ return new Date().toISOString().split('T')[0]; }
+function toast(msg,dur=2200){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),dur); }
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+  // Mostrar URL actual en modal de Drive
+  if(id === 'modal-drive'){
+    const urlEl = document.getElementById('drive-url-display');
+    if(urlEl){
+      const url = window.location.href.split('#')[0].split('?')[0];
+      urlEl.textContent = url;
+    }
+  }
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>{ m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }); });
+
+function initials(nombre){ return nombre.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+
+function getMonday(d){
+  const day=d.getDay(), diff=d.getDate()-day+(day===0?-6:1);
+  const m=new Date(new Date(d).setDate(diff));
+  return `${m.getDate()}/${m.getMonth()+1}`;
+}
+
+// ══════════════ NAV ══════════════
+function goScreen(name,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  btn.classList.add('active');
+  const titles={home:'AGVAS-FIT',equipos:'Equipos & Máquinas',historial:'Historial',progresion:'Progresión',clientes:'Clientes'};
+  document.getElementById('topbar-title').textContent=titles[name]||'AGVAS-FIT';
+  document.getElementById('topbar-sub').textContent='';
+  if(name==='home') renderHome();
+  if(name==='equipos') renderEquipos();
+  if(name==='historial') renderHistorial();
+  if(name==='progresion') renderProgresionScreen();
+}
+
+// ══════════════ HOME ══════════════
+function renderHome(){
+  // Clientes
+  const hc=document.getElementById('home-clientes');
+  if(!db.clientes.length){
+    hc.innerHTML='<div class="empty" style="padding:24px"><div class="empty-icon">👤</div><div class="empty-text">Sin clientes</div><div class="empty-sub">Tocá "+ Agregar" arriba para crear tu primer cliente</div></div>';
+  } else {
+    hc.innerHTML=db.clientes.map(c=>{
+      const ses=db.sesiones.filter(s=>s.clienteId===c.id);
+      const ultima=ses.length?ses[ses.length-1].fecha:'';
+      return `<div class="client-row" onclick="verDetalleCliente('${c.id}')">
+        <div class="avatar">${initials(c.nombre)}</div>
+        <div class="client-info">
+          <div class="client-name">${c.nombre}</div>
+          <div class="client-meta">${c.objetivo} · ${ses.length} sesiones${ultima?' · '+ultima:''}</div>
+        </div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--text3)" style="width:18px;height:18px;flex-shrink:0"><path d="m9 18 6-6-6-6" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>`;
+    }).join('');
+  }
+  // Ultima sesion
+  const hu=document.getElementById('home-ultima');
+  const todas=[...db.sesiones].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  if(!todas.length){
+    hu.innerHTML='<div class="card"><div class="empty" style="padding:20px"><div class="empty-sub">Sin sesiones registradas</div></div></div>';
+  } else {
+    const s=todas[0]; const cli=db.clientes.find(c=>c.id===s.clienteId);
+    const totalVol=s.ejercicios.reduce((a,e)=>a+e.series.reduce((b,sr)=>b+sr.peso*sr.reps,0),0);
+    const totalS=s.ejercicios.reduce((a,e)=>a+e.series.length,0);
+    hu.innerHTML=`<div class="card" onclick="verDetalleSesion('${s.id}')" style="cursor:pointer">
+      <div class="card-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:15px;font-weight:700">${cli?cli.nombre:'?'}</div>
+            <div style="font-size:13px;color:var(--text3)">${s.rutina} · ${s.fecha}</div>
+          </div>
+          <span class="badge badge-blue">${s.ejercicios.length} ej.</span>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:10px">
+          <div><div style="font-size:18px;font-weight:700">${(Math.round(totalVol/100)/10)}t</div><div style="font-size:11px;color:var(--text3)">volumen</div></div>
+          <div><div style="font-size:18px;font-weight:700">${totalS}</div><div style="font-size:11px;color:var(--text3)">series</div></div>
+          <div><div style="font-size:18px;font-weight:700">${s.duracion||'—'}</div><div style="font-size:11px;color:var(--text3)">min</div></div>
+        </div>
+      </div>
+    </div>`;
+  }
+}
+
+function irAProgresion(clienteId){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-progresion').classList.add('active');
+  document.querySelectorAll('.nav-btn')[3].classList.add('active');
+  document.getElementById('topbar-title').textContent='Progresión';
+  document.getElementById('prog-cliente-sel').value=clienteId;
+  renderProgresion();
+}
+
+// ══════════════ GOOGLE DRIVE ══════════════
+const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILE_NAME = 'agvasfit_backup.json';
+let driveAccessToken = null;
+let driveFileId = null;
+let driveClientId = null;
+let driveUser = null;
+let driveAutoSyncTimer = null;
+let driveTokenExpiry = null;
+
+// ── Config persistente ──
+function loadDriveConfig(){
+  try{
+    const cfg = localStorage.getItem('agvasfit_drive_cfg');
+    if(cfg){
+      const d = JSON.parse(cfg);
+      driveClientId = d.clientId||null;
+      driveFileId   = d.fileId||null;
+      driveUser     = d.user||null;
+      if(d.clientId) document.getElementById('drive-client-id').value = d.clientId;
+    }
+  }catch(e){}
+}
+
+function saveDriveConfig(){
+  try{
+    localStorage.setItem('agvasfit_drive_cfg', JSON.stringify({
+      clientId: driveClientId,
+      fileId: driveFileId,
+      user: driveUser
+    }));
+  }catch(e){}
+}
+
+// ── UI del botón Drive en topbar ──
+function updateDriveUI(){
+  const btn    = document.getElementById('drive-btn');
+  const lbl    = document.getElementById('drive-label');
+  const icon   = document.getElementById('drive-estado-icon');
+  const titulo = document.getElementById('drive-estado-titulo');
+  const sub    = document.getElementById('drive-estado-sub');
+  const cfgSec = document.getElementById('drive-config-section');
+  const conSec = document.getElementById('drive-conectado-section');
+  const lastEl = document.getElementById('drive-ultimo-sync');
+
+  btn.className = 'drive-pill';
+
+  if(!driveClientId){
+    btn.classList.add('drive-desconectado'); lbl.textContent = 'Drive';
+    icon.textContent='🔴'; titulo.textContent='Sin configurar';
+    sub.textContent='Pegá tu Client ID para activar el respaldo automático';
+    cfgSec.style.display='block'; conSec.style.display='none';
+
+  } else if(!driveAccessToken){
+    btn.classList.add('drive-desconectado'); lbl.textContent = 'Drive';
+    icon.textContent='🟡'; titulo.textContent='Desconectado';
+    sub.textContent = driveUser
+      ? `Cuenta: ${driveUser} — tocá "Conectar" para reautorizar`
+      : 'Client ID listo — tocá "Conectar con Google"';
+    cfgSec.style.display='block'; conSec.style.display='none';
+
+  } else {
+    btn.classList.add('drive-conectado'); lbl.textContent = '✓';
+    icon.textContent='🟢'; titulo.textContent='Conectado';
+    sub.textContent = driveUser ? `Cuenta: ${driveUser}` : 'Google Drive activo';
+    cfgSec.style.display='none'; conSec.style.display='block';
+    const ls = localStorage.getItem('agvasfit_last_sync');
+    if(ls){ lastEl.textContent='Último respaldo: '+ls; lastEl.style.display='block'; }
+  }
+}
+
+// ── CONEXIÓN: OAuth con redirect — funciona en GitHub Pages ──
+function conectarDrive(){
+  const cid = document.getElementById('drive-client-id').value.trim();
+  if(!cid){ toast('Pegá tu Client ID primero'); return; }
+  driveClientId = cid;
+  saveDriveConfig();
+
+  // La página actual es el redirect_uri — Google devuelve el token en el hash #access_token=...
+  const redirectUri = window.location.href.split('#')[0].split('?')[0];
+
+  const params = new URLSearchParams({
+    client_id:     driveClientId,
+    redirect_uri:  redirectUri,
+    response_type: 'token',
+    scope:         DRIVE_SCOPES,
+    include_granted_scopes: 'true',
+    prompt:        'select_account',
+    state:         'agvasfit_oauth'
+  });
+
+  // Guardar que estamos esperando el token
+  localStorage.setItem('agvasfit_oauth_pending', '1');
+
+  // Redirigir a Google OAuth
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+}
+
+// ── Leer token del hash cuando Google nos redirija de vuelta ──
+function checkOAuthCallback(){
+  const hash = window.location.hash;
+  if(!hash || !hash.includes('access_token')) return;
+
+  const params = new URLSearchParams(hash.replace('#',''));
+  const token  = params.get('access_token');
+  const exp    = params.get('expires_in');
+  const state  = params.get('state');
+
+  if(token && state === 'agvasfit_oauth'){
+    // Limpiar el hash de la URL sin recargar
+    history.replaceState(null, '', window.location.pathname);
+    localStorage.removeItem('agvasfit_oauth_pending');
+    recibirToken(token, exp);
+  }
+}
+
+async function recibirToken(token, expiresIn){
+  driveAccessToken = token;
+  driveTokenExpiry = Date.now() + (parseInt(expiresIn)||3600)*1000;
+
+  // Obtener email
+  try{
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
+      headers:{ Authorization:'Bearer '+token }
+    });
+    const u = await r.json();
+    driveUser = u.email||'';
+  }catch(e){}
+
+  saveDriveConfig();
+  updateDriveUI();
+  closeModal('modal-drive');
+  toast('¡Conectado a Drive! Sincronizando...');
+  syncDrive();
+
+  // Renovar token automáticamente antes de que expire
+  const renovarEn = Math.max(0, (driveTokenExpiry - Date.now()) - 120000);
+  setTimeout(()=>{ driveAccessToken=null; updateDriveUI(); }, renovarEn);
+}
+
+function desconectarDrive(){
+  driveAccessToken = null;
+  driveUser = null;
+  driveFileId = null;
+  saveDriveConfig();
+  updateDriveUI();
+  toast('Cuenta desconectada');
+}
+
+// ── Subir backup a Drive ──
+async function syncDrive(){
+  if(!driveAccessToken) return;
+
+  const btn = document.getElementById('drive-btn');
+  const lbl = document.getElementById('drive-label');
+  btn.className = 'drive-pill drive-sincronizando';
+  lbl.textContent = '⏳';
+
+  try{
+    const contenido = JSON.stringify(db, null, 2);
+
+    if(driveFileId){
+      // Actualizar archivo existente
+      const r = await fetch(
+        `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{
+          method:'PATCH',
+          headers:{
+            Authorization: 'Bearer '+driveAccessToken,
+            'Content-Type': 'application/json'
+          },
+          body: contenido
+        });
+      if(r.status===401){ driveAccessToken=null; updateDriveUI(); return; }
+      if(!r.ok) throw new Error('PATCH failed '+r.status);
+    } else {
+      // Buscar o crear carpeta AGVAS-FIT
+      const folderId = await getOrCreateDriveFolder();
+      // Crear archivo nuevo
+      const meta = { name: DRIVE_FILE_NAME, parents: folderId?[folderId]:[] };
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)],{type:'application/json'}));
+      form.append('file',     new Blob([contenido],{type:'application/json'}));
+      const r = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+          method:'POST',
+          headers:{ Authorization:'Bearer '+driveAccessToken },
+          body: form
+        });
+      if(!r.ok) throw new Error('POST failed '+r.status);
+      const data = await r.json();
+      driveFileId = data.id;
+      saveDriveConfig();
+    }
+
+    // Éxito
+    const ahora = new Date().toLocaleString('es-PE',{
+      day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'
+    });
+    localStorage.setItem('agvasfit_last_sync', ahora);
+    btn.className = 'drive-pill drive-conectado';
+    lbl.textContent = '✓';
+    updateDriveUI();
+
+  } catch(err){
+    console.error('Drive sync error:', err);
+    btn.className = 'drive-pill drive-error';
+    lbl.textContent = '!';
+    toast('Error al sincronizar — revisá conexión', 3000);
+  }
+}
+
+async function getOrCreateDriveFolder(){
+  try{
+    const q = encodeURIComponent(`name='AGVAS-FIT' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const r = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`,{
+        headers:{ Authorization:'Bearer '+driveAccessToken }
+      });
+    const d = await r.json();
+    if(d.files&&d.files.length>0) return d.files[0].id;
+    const cr = await fetch('https://www.googleapis.com/drive/v3/files',{
+      method:'POST',
+      headers:{ Authorization:'Bearer '+driveAccessToken, 'Content-Type':'application/json' },
+      body: JSON.stringify({ name:'AGVAS-FIT', mimeType:'application/vnd.google-apps.folder' })
+    });
+    const folder = await cr.json();
+    return folder.id||null;
+  }catch(e){ return null; }
+}
+
+// ── Restaurar desde Drive ──
+async function restaurarDesdeDrive(){
+  if(!driveAccessToken){ toast('Conectá Drive primero'); return; }
+  if(!driveFileId){ toast('No hay archivo de respaldo aún'); return; }
+  try{
+    const r = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`,{
+        headers:{ Authorization:'Bearer '+driveAccessToken }
+      });
+    const data = await r.json();
+    if(data.clientes&&data.sesiones){
+      db = data;
+      saveDB();
+      refreshSelects(); refreshMaquinaSelect(); renderHome();
+      toast('Datos restaurados desde Drive ✓');
+      closeModal('modal-drive');
+    } else {
+      toast('Archivo de respaldo vacío o corrupto');
+    }
+  }catch(e){ toast('Error al restaurar desde Drive'); }
+}
+
+// ── saveDB con auto-sync ──
+function saveDB(){
+  try{ localStorage.setItem('aguvari_v3',JSON.stringify(db)); }catch(e){}
+  triggerAutoSync();
+}
+
+function triggerAutoSync(){
+  if(!driveAccessToken) return;
+  clearTimeout(driveAutoSyncTimer);
+  driveAutoSyncTimer = setTimeout(()=>syncDrive(), 1500);
+}
+
+function syncDriveManual(){
+  if(!driveAccessToken){ toast('Conectá tu cuenta primero'); return; }
+  syncDrive();
+}
+
+// ══════════════ CLIENTES ══════════════
+let clienteEditandoId=null;
+
+function resetModalCliente(){
+  document.getElementById('cl-nombre').value='';
+  document.getElementById('cl-edad').value='';
+  document.getElementById('cl-peso').value='';
+  document.getElementById('cl-lesiones').value='';
+  document.getElementById('cl-objetivo').selectedIndex=0;
+  document.getElementById('cl-nivel').selectedIndex=0;
+  document.getElementById('modal-cliente-titulo').textContent='Nuevo cliente';
+  clienteEditandoId=null;
+}
+
+function guardarCliente(){
+  const nombre=document.getElementById('cl-nombre').value.trim();
+  if(!nombre){toast('Escribí el nombre del cliente');return;}
+  const cli={
+    id:clienteEditandoId||('c_'+Date.now()),
+    nombre,
+    edad:parseInt(document.getElementById('cl-edad').value)||null,
+    peso:parseFloat(document.getElementById('cl-peso').value)||null,
+    objetivo:document.getElementById('cl-objetivo').value,
+    nivel:document.getElementById('cl-nivel').value,
+    lesiones:document.getElementById('cl-lesiones').value||'Ninguna',
+    creado:clienteEditandoId?(db.clientes.find(c=>c.id===clienteEditandoId)?.creado||hoy()):hoy()
+  };
+  if(clienteEditandoId){
+    const idx=db.clientes.findIndex(c=>c.id===clienteEditandoId);
+    if(idx>-1) db.clientes[idx]=cli;
+  } else {
+    db.clientes.push(cli);
+  }
+  saveDB();
+  const wasEditing=!!clienteEditandoId;
+  resetModalCliente();
+  closeModal('modal-nuevo-cliente');
+  refreshSelects();
+  renderHome();
+  toast(wasEditing?'Cliente actualizado ✓':'Cliente guardado ✓');
+}
+
+function verDetalleCliente(id){
+  const c=db.clientes.find(x=>x.id===id); if(!c) return;
+  clienteEditandoId=id;
+  const ses=db.sesiones.filter(s=>s.clienteId===id);
+  const streak=calcStreak(id);
+  let html=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+    <div class="avatar" style="width:52px;height:52px;font-size:18px">${initials(c.nombre)}</div>
+    <div>
+      <div style="font-size:18px;font-weight:700">${c.nombre}</div>
+      <div style="font-size:13px;color:var(--text3)">${c.nivel}${c.edad?' · '+c.edad+' años':''} · ${c.objetivo}</div>
+    </div>
+  </div>
+  <div style="font-size:14px;color:var(--text2);line-height:2">
+    <div>⚖️ Peso registrado: <strong>${c.peso?c.peso+' kg':'—'}</strong></div>
+    <div>🩹 Lesiones: <strong>${c.lesiones}</strong></div>
+    <div>📅 Cliente desde: <strong>${c.creado}</strong></div>
+    <div>🏋️ Sesiones totales: <strong>${ses.length}</strong></div>
+    ${streak>0?`<div>🔥 Racha actual: <strong>${streak} semanas seguidas</strong></div>`:''}
+  </div>`;
+  document.getElementById('detalle-cliente-content').innerHTML=html;
+  openModal('modal-detalle-cliente');
+}
+
+function editarClienteActual(){
+  const c=db.clientes.find(x=>x.id===clienteEditandoId); if(!c) return;
+  document.getElementById('cl-nombre').value=c.nombre;
+  document.getElementById('cl-edad').value=c.edad||'';
+  document.getElementById('cl-peso').value=c.peso||'';
+  document.getElementById('cl-objetivo').value=c.objetivo;
+  document.getElementById('cl-nivel').value=c.nivel;
+  document.getElementById('cl-lesiones').value=c.lesiones==='Ninguna'?'':c.lesiones;
+  document.getElementById('modal-cliente-titulo').textContent='Editar cliente';
+  closeModal('modal-detalle-cliente');
+  openModal('modal-nuevo-cliente');
+}
+
+function eliminarClienteActual(){
+  if(!clienteEditandoId) return;
+  db.clientes=db.clientes.filter(c=>c.id!==clienteEditandoId);
+  db.sesiones=db.sesiones.filter(s=>s.clienteId!==clienteEditandoId);
+  saveDB();
+  closeModal('modal-detalle-cliente');
+  refreshSelects();
+  renderHome();
+  toast('Cliente eliminado');
+  clienteEditandoId=null;
+}
+
+function calcStreak(clienteId){
+  const fechas=db.sesiones.filter(s=>s.clienteId===clienteId).map(s=>s.fecha).sort().reverse();
+  if(!fechas.length) return 0;
+  let streak=1;
+  for(let i=1;i<fechas.length;i++){
+    const diff=(new Date(fechas[i-1])-new Date(fechas[i]))/86400000;
+    if(diff<=7) streak++; else break;
+  }
+  return streak;
+}
+
+// ══════════════ SESIÓN ══════════════
+function openNuevaSesion(){
+  if(!db.clientes.length){ toast('Agregá un cliente primero'); openModal('modal-nuevo-cliente'); return; }
+  refreshSelects();
+  document.getElementById('ns-fecha').value=hoy();
+  openModal('modal-nueva-sesion');
+}
+
+function iniciarSesion(){
+  const cid=document.getElementById('ns-cliente').value;
+  if(!cid){toast('Seleccioná un cliente');return;}
+  const cli=db.clientes.find(c=>c.id===cid);
+  closeModal('modal-nueva-sesion');
+  sesionActiva={id:'ses_'+Date.now(),clienteId:cid,rutina:document.getElementById('ns-rutina').value,
+    fecha:document.getElementById('ns-fecha').value,ejercicios:[],energia:3,fatiga:2,dolor:'',inicio:Date.now()};
+  ejercicioActual=null; totalSeries=0;
+  document.getElementById('sh-avatar').textContent=initials(cli.nombre);
+  document.getElementById('sh-name').textContent=cli.nombre+' · '+sesionActiva.rutina;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-sesion').classList.add('active');
+  document.getElementById('topbar-title').textContent='Sesión activa';
+  timerStart=Date.now();
+  timerInterval=setInterval(updateTimer,1000);
+  openModalEjercicio();
+}
+
+function updateTimer(){
+  const el=Math.floor((Date.now()-timerStart)/1000);
+  const m=Math.floor(el/60).toString().padStart(2,'0'), s=(el%60).toString().padStart(2,'0');
+  document.getElementById('sh-timer').textContent=`⏱ ${m}:${s} · ${totalSeries} series`;
+}
+
+function openModalEjercicio(){
+  refreshMaquinaSelect();
+  document.getElementById('ej-nombre-input').value='';
+  document.getElementById('ej-maquina-preview').style.display='none';
+  openModal('modal-ejercicio');
+  setTimeout(()=>document.getElementById('ej-nombre-input').focus(),300);
+}
+
+function previewMaquinaEnEjercicio(){
+  const id=document.getElementById('ej-maquina-sel').value;
+  const prev=document.getElementById('ej-maquina-preview');
+  const img=document.getElementById('ej-maquina-prev-img');
+  if(!id){prev.style.display='none';return;}
+  const mq=db.maquinas.find(m=>m.id===id);
+  if(mq&&mq.foto){ img.src=mq.foto; prev.style.display='block'; }
+  else { prev.style.display='none'; }
+}
+
+function confirmarEjercicio(){
+  const nombre=document.getElementById('ej-nombre-input').value.trim();
+  if(!nombre){toast('Escribí el nombre del ejercicio');return;}
+  if(ejercicioActual&&ejercicioActual.series.length>0){
+    ejercicioActual.notas=document.getElementById('notas-ejercicio').value;
+    sesionActiva.ejercicios.push({...ejercicioActual});
+  }
+  const maqId=document.getElementById('ej-maquina-sel').value;
+  const maq=maqId?db.maquinas.find(m=>m.id===maqId):null;
+  ejercicioActual={nombre,grupo:document.getElementById('ej-grupo').value,
+    maquinaId:maqId||null,maquinaNombre:maq?maq.nombre:'',
+    repsMin:parseInt(document.getElementById('ej-reps-min').value)||8,
+    repsMax:parseInt(document.getElementById('ej-reps-max').value)||12,
+    series:[],notas:''};
+  closeModal('modal-ejercicio');
+  renderEjercicioActual();
+  mostrarHintProgresion();
+  addSerieViva();
+}
+
+function renderEjercicioActual(){
+  if(!ejercicioActual) return;
+  const n=sesionActiva.ejercicios.length+1;
+  document.getElementById('ej-num-label').textContent=`Ejercicio ${n}`;
+  document.getElementById('ej-nombre-display').textContent=ejercicioActual.nombre;
+  document.getElementById('ej-meta-display').textContent=`${ejercicioActual.grupo}${ejercicioActual.maquinaNombre?' · '+ejercicioActual.maquinaNombre:''} · ${ejercicioActual.repsMin}–${ejercicioActual.repsMax} reps`;
+  // Mostrar thumb de la máquina
+  const thumb=document.getElementById('ej-maquina-thumb');
+  const timg=document.getElementById('ej-maquina-img');
+  if(ejercicioActual.maquinaId){
+    const mq=db.maquinas.find(m=>m.id===ejercicioActual.maquinaId);
+    if(mq&&mq.foto){ timg.src=mq.foto; thumb.style.display='block'; }
+    else thumb.style.display='none';
+  } else thumb.style.display='none';
+  document.getElementById('series-live').innerHTML='';
+  document.getElementById('notas-ejercicio').value='';
+  document.getElementById('vol-display').textContent='Vol: 0 kg';
+}
+
+function addSerieViva(){
+  if(!ejercicioActual){openModalEjercicio();return;}
+  const n=ejercicioActual.series.length+1;
+  const prev=ejercicioActual.series[n-2];
+  const row=document.createElement('div');
+  row.className='serie-row'; row.id='sr-'+n;
+  row.innerHTML=`<div class="serie-num">${n}</div>
+    <input type="number" class="serie-input" id="peso-${n}" placeholder="${prev?prev.peso:'kg'}" value="${prev?prev.peso:''}" min="0" step="0.5" inputmode="decimal" onchange="actualizarVol()">
+    <input type="number" class="serie-input" id="reps-${n}" placeholder="${prev?prev.reps:'reps'}" value="${prev?prev.reps:''}" min="1" max="60" inputmode="numeric" onchange="actualizarVol()">
+    <select class="rir-select" id="rir-${n}" onchange="colorearRIR(${n})">
+      <option value="4">4+</option><option value="3">3</option>
+      <option value="2" selected>2</option><option value="1">1</option><option value="0">0</option>
+    </select>`;
+  document.getElementById('series-live').appendChild(row);
+  colorearRIR(n);
+  ejercicioActual.series.push({peso:prev?prev.peso:0,reps:prev?prev.reps:0,rir:2});
+  totalSeries++;
+  if(!prev) setTimeout(()=>document.getElementById(`peso-${n}`)?.focus(),100);
+  else setTimeout(()=>document.getElementById(`reps-${n}`)?.focus(),100);
+  actualizarVol();
+}
+
+function colorearRIR(n){
+  const sel=document.getElementById(`rir-${n}`); if(!sel) return;
+  sel.classList.remove('rir-0','rir-1','rir-2');
+  const v=parseInt(sel.value);
+  if(v===0) sel.classList.add('rir-0');
+  else if(v===1) sel.classList.add('rir-1');
+  else if(v===2) sel.classList.add('rir-2');
+}
+
+function actualizarVol(){
+  if(!ejercicioActual) return;
+  let vol=0;
+  for(let i=1;i<=ejercicioActual.series.length;i++){
+    const p=parseFloat(document.getElementById(`peso-${i}`)?.value)||0;
+    const r=parseInt(document.getElementById(`reps-${i}`)?.value)||0;
+    vol+=p*r;
+    if(ejercicioActual.series[i-1]){
+      ejercicioActual.series[i-1].peso=p;
+      ejercicioActual.series[i-1].reps=r;
+      ejercicioActual.series[i-1].rir=parseInt(document.getElementById(`rir-${i}`)?.value)||2;
+    }
+  }
+  document.getElementById('vol-display').textContent=`Vol: ${Math.round(vol).toLocaleString()} kg`;
+}
+
+function mostrarHintProgresion(){
+  const hint=document.getElementById('hint-progresion');
+  if(!ejercicioActual||!sesionActiva){hint.style.display='none';return;}
+  const prevSes=db.sesiones.filter(s=>s.clienteId===sesionActiva.clienteId);
+  let mejorMarca=null, ultimaSerie=null;
+  prevSes.forEach(s=>s.ejercicios.forEach(e=>{
+    if(e.nombre.toLowerCase()===ejercicioActual.nombre.toLowerCase()){
+      e.series.forEach(sr=>{ if(!mejorMarca||sr.peso>mejorMarca) mejorMarca=sr.peso; ultimaSerie=sr; });
+    }
+  }));
+  if(mejorMarca){
+    hint.style.display='block';
+    hint.innerHTML=`<div style="background:var(--amber-light);border:1px solid #f0c040;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px">
+      <div style="font-weight:700;color:var(--amber);margin-bottom:2px">📊 Referencia anterior</div>
+      <div style="color:var(--text2)">Mejor marca: <strong>${mejorMarca} kg</strong>${ultimaSerie?' · Última: '+ultimaSerie.peso+'kg × '+ultimaSerie.reps+' reps · RIR '+ultimaSerie.rir:''}</div>
+    </div>`;
+  } else hint.style.display='none';
+}
+
+function agregarOtroEjercicio(){
+  if(ejercicioActual){ ejercicioActual.notas=document.getElementById('notas-ejercicio').value; if(ejercicioActual.series.length>0) sesionActiva.ejercicios.push({...ejercicioActual}); ejercicioActual=null; }
+  openModalEjercicio();
+}
+
+function finalizarSesion(){
+  if(!sesionActiva) return;
+  if(ejercicioActual){ ejercicioActual.notas=document.getElementById('notas-ejercicio').value; if(ejercicioActual.series.length>0) sesionActiva.ejercicios.push({...ejercicioActual}); }
+  if(!sesionActiva.ejercicios.length){toast('Registrá al menos un ejercicio');return;}
+  clearInterval(timerInterval);
+  sesionActiva.duracion=Math.round((Date.now()-sesionActiva.inicio)/60000);
+  sesionActiva.energia=sensActiva.energia; sesionActiva.fatiga=sensActiva.fatiga;
+  db.sesiones.push({...sesionActiva}); saveDB();
+  sesionActiva=null; ejercicioActual=null; totalSeries=0;
+  toast('Sesión guardada ✓');
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-home').classList.add('active');
+  document.querySelectorAll('.nav-btn')[0].classList.add('active');
+  document.getElementById('topbar-title').textContent='AGVAS-FIT';
+  renderHome();
+}
+
+// ══════════════ SENSACIONES ══════════════
+function selSens(tipo,val,btn){
+  sensActiva[tipo]=val;
+  document.getElementById('sens-'+tipo+'-btns').querySelectorAll('.sens-btn').forEach(b=>b.classList.remove('sel-energia','sel-fatiga'));
+  btn.classList.add('sel-'+tipo);
+}
+function guardarSensaciones(){
+  if(sesionActiva){sesionActiva.energia=sensActiva.energia;sesionActiva.fatiga=sensActiva.fatiga;sesionActiva.dolor=document.getElementById('sens-dolor').value;}
+  closeModal('modal-sensaciones'); toast('Sensaciones guardadas');
+}
+
+// ══════════════ EQUIPOS ══════════════
+function previewMaquinaFoto(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=document.getElementById('mq-foto-preview');
+    img.src=e.target.result; img.style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function guardarMaquina(){
+  const nombre=document.getElementById('mq-nombre').value.trim();
+  if(!nombre){toast('Escribí el nombre del equipo');return;}
+  const foto=document.getElementById('mq-foto-preview').src;
+  const mq={
+    id:maquinaEditandoId||('mq_'+Date.now()),
+    nombre,
+    tipo:document.getElementById('mq-tipo').value,
+    grupo:document.getElementById('mq-grupo').value,
+    notas:document.getElementById('mq-notas').value,
+    foto:(foto&&foto!==window.location.href)?foto:null
+  };
+  if(maquinaEditandoId){ const idx=db.maquinas.findIndex(m=>m.id===maquinaEditandoId); if(idx>-1) db.maquinas[idx]=mq; }
+  else db.maquinas.push(mq);
+  saveDB(); resetModalMaquina(); closeModal('modal-nueva-maquina'); renderEquipos(); refreshMaquinaSelect();
+  toast(maquinaEditandoId?'Equipo actualizado ✓':'Equipo guardado ✓');
+  maquinaEditandoId=null;
+}
+
+function resetModalMaquina(){
+  document.getElementById('mq-nombre').value='';
+  document.getElementById('mq-notas').value='';
+  const prev=document.getElementById('mq-foto-preview');
+  prev.src=''; prev.style.display='none';
+  document.getElementById('mq-foto-input').value='';
+  document.getElementById('modal-maquina-titulo').textContent='Agregar equipo';
+  maquinaEditandoId=null;
+}
+
+function renderEquipos(){
+  const cont=document.getElementById('maquinas-grid-cont');
+  if(!db.maquinas.length){
+    cont.innerHTML='<div class="empty"><div class="empty-icon">🏋️</div><div class="empty-text">Sin equipos registrados</div><div class="empty-sub">Agregá las máquinas de tu gym con foto para identificarlas rápido</div></div>';
+    return;
+  }
+  const grupos={};
+  db.maquinas.forEach(m=>{ if(!grupos[m.grupo]) grupos[m.grupo]=[]; grupos[m.grupo].push(m); });
+  let html='';
+  Object.entries(grupos).forEach(([grp,mqs])=>{
+    html+=`<div class="section-title" style="margin-top:8px">${grp}</div><div class="maquinas-grid">`;
+    mqs.forEach(m=>{
+      html+=`<div class="maquina-card" onclick="verDetalleMaquina('${m.id}')">
+        <div class="maquina-img">${m.foto?`<img src="${m.foto}" alt="${m.nombre}" loading="lazy">`:'🏋️'}</div>
+        <div class="maquina-info">
+          <div class="maquina-name">${m.nombre}</div>
+          <div class="maquina-meta">${m.tipo}</div>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  cont.innerHTML=html;
+}
+
+function verDetalleMaquina(id){
+  const mq=db.maquinas.find(m=>m.id===id); if(!mq) return;
+  maquinaEditandoId=id;
+  let html=`<div class="modal-title">${mq.nombre}</div>`;
+  if(mq.foto) html+=`<img src="${mq.foto}" style="width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:14px">`;
+  html+=`<div style="font-size:14px;color:var(--text2);line-height:1.8">
+    <div>🏷 Tipo: <strong>${mq.tipo}</strong></div>
+    <div>💪 Grupo: <strong>${mq.grupo}</strong></div>
+    ${mq.notas?`<div>📝 Notas: <strong>${mq.notas}</strong></div>`:''}
+  </div>`;
+  document.getElementById('detalle-maquina-content').innerHTML=html;
+  openModal('modal-detalle-maquina');
+}
+
+let maquinaParaEliminar=null;
+function eliminarMaquinaActual(){
+  if(!maquinaEditandoId) return;
+  db.maquinas=db.maquinas.filter(m=>m.id!==maquinaEditandoId);
+  saveDB(); closeModal('modal-detalle-maquina'); renderEquipos(); refreshMaquinaSelect();
+  toast('Equipo eliminado'); maquinaEditandoId=null;
+}
+
+function refreshMaquinaSelect(){
+  const sel=document.getElementById('ej-maquina-sel'); if(!sel) return;
+  while(sel.options.length>1) sel.remove(1);
+  db.maquinas.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=m.nombre; sel.appendChild(o); });
+}
+
+// ══════════════ HISTORIAL ══════════════
+function renderHistorial(){
+  const filtro=document.getElementById('hist-filtro').value;
+  let sesiones=[...db.sesiones].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  if(filtro) sesiones=sesiones.filter(s=>s.clienteId===filtro);
+  const cont=document.getElementById('historial-list');
+  if(!sesiones.length){ cont.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Sin sesiones</div></div>'; return; }
+  const clMap={}; db.clientes.forEach(c=>clMap[c.id]=c.nombre);
+  let html='', lastWeek='';
+  sesiones.forEach(s=>{
+    const d=new Date(s.fecha), wk=`Semana del ${getMonday(d)}`;
+    if(wk!==lastWeek){ html+=`<div class="semana-div">${wk}</div>`; lastWeek=wk; }
+    const tv=s.ejercicios.reduce((a,e)=>a+e.series.reduce((b,sr)=>b+sr.peso*sr.reps,0),0);
+    const ts=s.ejercicios.reduce((a,e)=>a+e.series.length,0);
+    html+=`<div class="hist-item" onclick="verDetalleSesion('${s.id}')">
+      <div class="hist-date">${s.fecha} · ${clMap[s.clienteId]||'?'}</div>
+      <div class="hist-title">${s.rutina}</div>
+      <div class="hist-meta">${s.ejercicios.length} ejercicios · ${ts} series · ${(Math.round(tv/100)/10)}t${s.duracion?' · '+s.duracion+' min':''}</div>
+      <div class="hist-tags">${s.ejercicios.map(e=>`<span class="badge badge-gray">${e.nombre}</span>`).join('')}</div>
+    </div>`;
+  });
+  cont.innerHTML=html;
+}
+
+function verDetalleSesion(id){
+  const s=db.sesiones.find(x=>x.id===id); if(!s) return;
+  const cli=db.clientes.find(c=>c.id===s.clienteId);
+  const rc=r=>r===0?'badge-red':r===1?'badge-amber':r===2?'badge-green':'badge-gray';
+  const tv=s.ejercicios.reduce((a,e)=>a+e.series.reduce((b,sr)=>b+sr.peso*sr.reps,0),0);
+  let html=`<div class="modal-title">${s.rutina}</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:14px">${cli?cli.nombre:'?'} · ${s.fecha}${s.duracion?' · '+s.duracion+' min':''}</div>`;
+  s.ejercicios.forEach(e=>{
+    const vol=e.series.reduce((a,sr)=>a+sr.peso*sr.reps,0);
+    const maxP=e.series.length?Math.max(...e.series.map(sr=>sr.peso)):0;
+    const mq=e.maquinaId?db.maquinas.find(m=>m.id===e.maquinaId):null;
+    html+=`<div style="margin-bottom:16px">`;
+    if(mq&&mq.foto) html+=`<img src="${mq.foto}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:6px">`;
+    html+=`<div style="font-size:15px;font-weight:700;margin-bottom:2px">${e.nombre}</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${e.grupo}${e.maquinaNombre?' · '+e.maquinaNombre:''} · Máx ${maxP}kg · Vol ${Math.round(vol).toLocaleString()}kg</div>`;
+    e.series.forEach((sr,i)=>{ html+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:12px;font-weight:700;color:var(--text3);width:20px">S${i+1}</span>
+      <span style="flex:1;font-size:14px;font-weight:600">${sr.peso}kg × ${sr.reps} reps</span>
+      <span class="badge ${rc(sr.rir)}">RIR ${sr.rir}</span></div>`; });
+    if(e.notas) html+=`<div style="font-size:12px;color:var(--text3);margin-top:6px;font-style:italic">${e.notas}</div>`;
+    html+='</div>';
+  });
+  html+=`<div style="padding-top:10px;border-top:1px solid var(--border);display:flex;gap:16px">
+    <div><div style="font-size:18px;font-weight:700">${(Math.round(tv/100)/10)}t</div><div style="font-size:11px;color:var(--text3)">volumen</div></div>
+    <div><div style="font-size:18px;font-weight:700">⚡${s.energia||'–'}</div><div style="font-size:11px;color:var(--text3)">energía</div></div>
+    <div><div style="font-size:18px;font-weight:700">🔥${s.fatiga||'–'}</div><div style="font-size:11px;color:var(--text3)">fatiga</div></div>
+  </div>`;
+  document.getElementById('detalle-sesion-content').innerHTML=html;
+  openModal('modal-detalle-sesion');
+}
+
+// ══════════════ PROGRESIÓN ══════════════
+function renderProgresionScreen(cid){
+  if(cid) document.getElementById('prog-cliente-sel').value=cid;
+  renderProgresion();
+}
+
+let progEjSelected=null;
+
+function renderProgresion(){
+  const cid=document.getElementById('prog-cliente-sel').value;
+  const cont=document.getElementById('prog-content');
+  if(activeChart){activeChart.destroy();activeChart=null;}
+  if(!cid){cont.innerHTML='<div class="empty"><div class="empty-text">Seleccioná un cliente</div></div>';return;}
+  const sesiones=db.sesiones.filter(s=>s.clienteId===cid).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  if(!sesiones.length){cont.innerHTML='<div class="empty"><div class="empty-text">Sin sesiones aún</div></div>';return;}
+
+  const totalVol=sesiones.reduce((a,s)=>a+s.ejercicios.reduce((b,e)=>b+e.series.reduce((c,sr)=>c+sr.peso*sr.reps,0),0),0);
+  const allRirs=sesiones.flatMap(s=>s.ejercicios.flatMap(e=>e.series.map(sr=>sr.rir)));
+  const rirProm=allRirs.length?(allRirs.reduce((a,b)=>a+b,0)/allRirs.length).toFixed(1):'—';
+  const allMax=sesiones.flatMap(s=>s.ejercicios.flatMap(e=>e.series.map(sr=>sr.peso)));
+  const bestMarca=allMax.length?Math.max(...allMax):0;
+
+  // Ejercicios únicos con historial
+  const ejMap={};
+  sesiones.forEach(s=>s.ejercicios.forEach(e=>{
+    if(!ejMap[e.nombre]) ejMap[e.nombre]=[];
+    ejMap[e.nombre].push({fecha:s.fecha,maxPeso:Math.max(...e.series.map(sr=>sr.peso)),
+      volumen:e.series.reduce((a,sr)=>a+sr.peso*sr.reps,0),series:e.series.length});
+  }));
+
+  // Si no hay selección o la selección no aplica para este cliente, tomar el primero
+  const ejNombres=Object.keys(ejMap);
+  if(!progEjSelected||!ejMap[progEjSelected]) progEjSelected=ejNombres[0]||null;
+
+  // Alertas de estancamiento
+  let alertHtml='';
+  ejNombres.forEach(nombre=>{
+    const regs=ejMap[nombre];
+    if(regs.length>=3){
+      const u=regs.slice(-3);
+      if(u[2].maxPeso<=u[0].maxPeso) alertHtml+=`<div style="background:var(--amber-light);border:1px solid #f0c040;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:13px">
+        <div style="font-weight:700;color:var(--amber)">⚠ Posible estancamiento</div>
+        <div style="color:var(--text2);margin-top:2px">${nombre}: sin mejora en las últimas 3 sesiones</div>
+      </div>`;
+    }
+  });
+
+  // Progresión en barras
+  let progHtml=ejNombres.map(nombre=>{
+    const regs=ejMap[nombre]; if(regs.length<2) return '';
+    const ini=regs[0].maxPeso, act=regs[regs.length-1].maxPeso;
+    const pct=ini>0?Math.round((act-ini)/ini*100):0;
+    const fw=Math.min(100,Math.max(8,(act/(act*1.4))*100));
+    const bc=pct>=15?'badge-green':pct>=5?'badge-amber':'badge-gray';
+    return `<div class="prog-row"><div class="prog-label"><span>${nombre}</span><span>${ini}→${act}kg <span class="badge ${bc}">+${pct}%</span></span></div>
+      <div class="prog-track"><div class="prog-fill" style="width:${fw}%"></div></div></div>`;
+  }).filter(Boolean).join('');
+
+  // Asistencia
+  let asistHtml=renderAsistencia(sesiones);
+
+  cont.innerHTML=`
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-val">${sesiones.length}</div><div class="stat-lbl">Sesiones</div></div>
+      <div class="stat-card"><div class="stat-val">${Math.round(totalVol/1000)}t</div><div class="stat-lbl">Volumen total</div></div>
+      <div class="stat-card"><div class="stat-val">${rirProm}</div><div class="stat-lbl">RIR promedio</div></div>
+      <div class="stat-card"><div class="stat-val">${bestMarca}kg</div><div class="stat-lbl">Mejor marca</div></div>
+    </div>
+    ${alertHtml}
+    <div class="card">
+      <div class="card-head"><div class="card-label">Progresión por ejercicio</div></div>
+      <div style="padding:12px 16px 8px">
+        <div class="ej-chips" id="prog-chips">${ejNombres.map(n=>`<div class="ej-chip ${n===progEjSelected?'active':''}" onclick="selProgEj('${n}')">${n}</div>`).join('')}</div>
+      </div>
+      <div class="card-body" style="padding-top:8px">
+        <div class="chart-wrap"><canvas id="chart-carga"></canvas></div>
+        <div id="chart-stats" style="display:flex;gap:16px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-label">Mejoras globales</div></div>
+      <div class="card-body">${progHtml||'<div class="empty-sub">Necesitás más sesiones</div>'}</div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-label">Asistencia semanal</div></div>
+      <div>${asistHtml}</div>
+    </div>`;
+
+  // Dibujar gráfico
+  setTimeout(()=>drawCargaChart(ejMap, progEjSelected), 80);
+}
+
+function selProgEj(nombre){
+  progEjSelected=nombre;
+  document.querySelectorAll('.ej-chip').forEach(c=>{c.classList.toggle('active',c.textContent===nombre);});
+  // Reconstruir ejMap para el cliente actual
+  const cid=document.getElementById('prog-cliente-sel').value;
+  const sesiones=db.sesiones.filter(s=>s.clienteId===cid).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const ejMap={};
+  sesiones.forEach(s=>s.ejercicios.forEach(e=>{
+    if(!ejMap[e.nombre]) ejMap[e.nombre]=[];
+    ejMap[e.nombre].push({fecha:s.fecha,maxPeso:Math.max(...e.series.map(sr=>sr.peso)),
+      volumen:e.series.reduce((a,sr)=>a+sr.peso*sr.reps,0),series:e.series.length});
+  }));
+  if(activeChart){activeChart.destroy();activeChart=null;}
+  drawCargaChart(ejMap, nombre);
+}
+
+function drawCargaChart(ejMap, nombre){
+  const canvas=document.getElementById('chart-carga'); if(!canvas) return;
+  const regs=ejMap[nombre]||[];
+  const labels=regs.map(r=>r.fecha.slice(5)); // MM-DD
+  const data=regs.map(r=>r.maxPeso);
+
+  if(activeChart){activeChart.destroy();activeChart=null;}
+
+  activeChart=new Chart(canvas,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Carga máx (kg)',
+        data,
+        borderColor:'#1a6fd4',
+        backgroundColor:'rgba(26,111,212,0.07)',
+        borderWidth:2.5,
+        pointRadius:5,
+        pointBackgroundColor:'#1a6fd4',
+        pointBorderColor:'#fff',
+        pointBorderWidth:2,
+        tension:0.35,
+        fill:true
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#111',
+          titleColor:'#fff',
+          bodyColor:'#ccc',
+          callbacks:{
+            title:items=>'Sesión '+items[0].label,
+            label:item=>` ${item.raw} kg`
+          }
+        }
+      },
+      scales:{
+        x:{
+          grid:{color:'rgba(0,0,0,0.04)'},
+          ticks:{color:'#888884',font:{size:11},maxRotation:35}
+        },
+        y:{
+          grid:{color:'rgba(0,0,0,0.04)'},
+          ticks:{color:'#888884',font:{size:11},callback:v=>v+'kg'},
+          beginAtZero:false
+        }
+      }
+    }
+  });
+
+  // Stats del ejercicio seleccionado
+  const statsEl=document.getElementById('chart-stats');
+  if(statsEl&&regs.length>=2){
+    const ini=regs[0].maxPeso, act=regs[regs.length-1].maxPeso;
+    const pct=ini>0?Math.round((act-ini)/ini*100):0;
+    const totalSes=regs.length;
+    statsEl.innerHTML=`
+      <div><div style="font-size:20px;font-weight:700;color:var(--blue)">${act}kg</div><div style="font-size:11px;color:var(--text3)">Carga actual</div></div>
+      <div><div style="font-size:20px;font-weight:700;color:var(--green)">+${pct}%</div><div style="font-size:11px;color:var(--text3)">Progresión</div></div>
+      <div><div style="font-size:20px;font-weight:700">${totalSes}</div><div style="font-size:11px;color:var(--text3)">Registros</div></div>`;
+  } else if(statsEl) statsEl.innerHTML='';
+}
+
+function renderAsistencia(sesiones){
+  if(!sesiones.length) return '<div class="empty-sub" style="padding:16px">Sin sesiones</div>';
+  const semMap={};
+  sesiones.forEach(s=>{ const d=new Date(s.fecha), mon=getMonday(d); if(!semMap[mon]) semMap[mon]=[]; semMap[mon].push(s); });
+  const keys=Object.keys(semMap).sort().reverse();
+  return keys.slice(0,8).map(sem=>{
+    const sems=semMap[sem];
+    const tv=sems.reduce((a,s)=>a+s.ejercicios.reduce((b,e)=>b+e.series.reduce((c,sr)=>c+sr.peso*sr.reps,0),0),0);
+    return `<div class="asist-row">
+      <div class="asist-dot dot-present"></div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">Sem del ${sem}</div>
+        <div style="font-size:12px;color:var(--text3)">${sems.length} sesión${sems.length>1?'es':''} · ${sems.map(s=>s.rutina.split('/')[0].trim()).join(', ')}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${(Math.round(tv/100)/10)}t</div>
+        <div style="font-size:11px;color:var(--text3)">vol</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════ SELECTS ══════════════
+function refreshSelects(){
+  ['ns-cliente','hist-filtro','prog-cliente-sel'].forEach(id=>{
+    const sel=document.getElementById(id); if(!sel) return;
+    const val=sel.value;
+    while(sel.options.length>1) sel.remove(1);
+    db.clientes.forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=c.nombre; sel.appendChild(o); });
+    if(val) sel.value=val;
+  });
+}
+
+// ══════════════ INIT + DEMO DATA ══════════════
+function init(){
+  loadDB();
+  checkOAuthCallback(); // leer token si Google nos acaba de redirigir
+  if(!db.clientes.length){
+    db.clientes=[
+      {id:'c1',nombre:'Marcos Vidal',edad:27,peso:79,objetivo:'Hipertrofia',nivel:'Intermedio',lesiones:'Molestia leve hombro der.',creado:'2025-06-03'},
+      {id:'c2',nombre:'Laura Quispe',edad:24,peso:62,objetivo:'Pérdida de grasa',nivel:'Principiante',lesiones:'Ninguna',creado:'2025-06-05'}
+    ];
+    db.maquinas=[
+      {id:'mq1',nombre:'Press inclinado Hammer',tipo:'Máquina Hammer',grupo:'Pecho',notas:'Agarre neutro · Asiento pos. 3',foto:null},
+      {id:'mq2',nombre:'Jalón al pecho',tipo:'Polea alta',grupo:'Espalda',notas:'Barra recta · Agarre prono',foto:null},
+      {id:'mq3',nombre:'Prensa 45°',tipo:'Máquina guiada',grupo:'Cuádriceps',notas:'Pies ancho de hombros',foto:null}
+    ];
+    db.sesiones=[
+      {id:'s1',clienteId:'c1',rutina:'Pecho / Tríceps',fecha:'2025-06-03',ejercicios:[
+        {nombre:'Press banca barra',grupo:'Pecho',maquinaId:null,maquinaNombre:'',repsMin:8,repsMax:12,series:[{peso:60,reps:10,rir:3},{peso:60,reps:10,rir:2},{peso:60,reps:9,rir:2}],notas:''},
+        {nombre:'Press inclinado Hammer',grupo:'Pecho',maquinaId:'mq1',maquinaNombre:'Press inclinado Hammer',repsMin:8,repsMax:12,series:[{peso:50,reps:12,rir:3},{peso:55,reps:10,rir:2},{peso:55,reps:9,rir:2}],notas:''}
+      ],energia:4,fatiga:2,dolor:'',duracion:52},
+      {id:'s2',clienteId:'c1',rutina:'Piernas',fecha:'2025-06-05',ejercicios:[
+        {nombre:'Sentadilla libre',grupo:'Cuádriceps',maquinaId:null,maquinaNombre:'',repsMin:5,repsMax:8,series:[{peso:85,reps:8,rir:3},{peso:85,reps:8,rir:2},{peso:85,reps:7,rir:2}],notas:''},
+        {nombre:'Prensa 45°',grupo:'Cuádriceps',maquinaId:'mq3',maquinaNombre:'Prensa 45°',repsMin:8,repsMax:12,series:[{peso:120,reps:12,rir:3},{peso:130,reps:10,rir:2},{peso:130,reps:9,rir:2}],notas:''}
+      ],energia:3,fatiga:3,dolor:'',duracion:58},
+      {id:'s3',clienteId:'c1',rutina:'Pecho / Tríceps',fecha:'2025-06-10',ejercicios:[
+        {nombre:'Press banca barra',grupo:'Pecho',maquinaId:null,maquinaNombre:'',repsMin:8,repsMax:12,series:[{peso:65,reps:9,rir:2},{peso:65,reps:8,rir:2},{peso:62,reps:8,rir:1}],notas:''},
+        {nombre:'Press inclinado Hammer',grupo:'Pecho',maquinaId:'mq1',maquinaNombre:'Press inclinado Hammer',repsMin:8,repsMax:12,series:[{peso:55,reps:11,rir:2},{peso:57,reps:9,rir:2},{peso:57,reps:8,rir:1}],notas:''}
+      ],energia:4,fatiga:2,dolor:'',duracion:49},
+      {id:'s4',clienteId:'c1',rutina:'Espalda / Bíceps',fecha:'2025-06-12',ejercicios:[
+        {nombre:'Remo con barra',grupo:'Espalda',maquinaId:null,maquinaNombre:'',repsMin:8,repsMax:12,series:[{peso:60,reps:8,rir:3},{peso:65,reps:7,rir:2},{peso:65,reps:7,rir:1}],notas:''},
+        {nombre:'Jalón al pecho',grupo:'Espalda',maquinaId:'mq2',maquinaNombre:'Jalón al pecho',repsMin:8,repsMax:12,series:[{peso:55,reps:12,rir:3},{peso:55,reps:11,rir:2},{peso:57,reps:9,rir:2}],notas:''}
+      ],energia:3,fatiga:3,dolor:'',duracion:55},
+      {id:'s5',clienteId:'c1',rutina:'Pecho / Tríceps',fecha:'2025-06-17',ejercicios:[
+        {nombre:'Press banca barra',grupo:'Pecho',maquinaId:null,maquinaNombre:'',repsMin:8,repsMax:12,series:[{peso:70,reps:8,rir:2},{peso:70,reps:7,rir:1},{peso:67,reps:7,rir:1}],notas:''},
+        {nombre:'Press inclinado Hammer',grupo:'Pecho',maquinaId:'mq1',maquinaNombre:'Press inclinado Hammer',repsMin:8,repsMax:12,series:[{peso:60,reps:10,rir:2},{peso:60,reps:9,rir:1},{peso:60,reps:8,rir:1}],notas:'Hombro leve molestia'}
+      ],energia:3,fatiga:3,dolor:'Hombro derecho leve',duracion:46},
+      {id:'s6',clienteId:'c1',rutina:'Piernas',fecha:'2025-06-19',ejercicios:[
+        {nombre:'Sentadilla libre',grupo:'Cuádriceps',maquinaId:null,maquinaNombre:'',repsMin:5,repsMax:8,series:[{peso:97,reps:7,rir:2},{peso:97,reps:7,rir:1},{peso:95,reps:6,rir:1}],notas:''},
+        {nombre:'Prensa 45°',grupo:'Cuádriceps',maquinaId:'mq3',maquinaNombre:'Prensa 45°',repsMin:8,repsMax:12,series:[{peso:145,reps:9,rir:2},{peso:150,reps:8,rir:1},{peso:150,reps:7,rir:1}],notas:''}
+      ],energia:4,fatiga:2,dolor:'',duracion:52},
+      {id:'s7',clienteId:'c1',rutina:'Espalda / Bíceps',fecha:'2025-06-21',ejercicios:[
+        {nombre:'Remo con barra',grupo:'Espalda',maquinaId:null,maquinaNombre:'',repsMin:8,repsMax:12,series:[{peso:67,reps:8,rir:2},{peso:67,reps:8,rir:1},{peso:65,reps:7,rir:1}],notas:''},
+        {nombre:'Jalón al pecho',grupo:'Espalda',maquinaId:'mq2',maquinaNombre:'Jalón al pecho',repsMin:8,repsMax:12,series:[{peso:60,reps:11,rir:2},{peso:62,reps:9,rir:2},{peso:62,reps:8,rir:1}],notas:''}
+      ],energia:4,fatiga:2,dolor:'',duracion:51},
+      {id:'s8',clienteId:'c1',rutina:'Pecho / Tríceps',fecha:'2025-06-24',ejercicios:[
+        {nombre:'Press banca barra',grupo:'Pecho',maquinaId:null,maquinaNombre:'',repsMin:8,repsMax:12,series:[{peso:75,reps:8,rir:2},{peso:75,reps:7,rir:1},{peso:72,reps:7,rir:1}],notas:'PR!'},
+        {nombre:'Press inclinado Hammer',grupo:'Pecho',maquinaId:'mq1',maquinaNombre:'Press inclinado Hammer',repsMin:8,repsMax:12,series:[{peso:62,reps:10,rir:2},{peso:65,reps:8,rir:1},{peso:65,reps:8,rir:1}],notas:''}
+      ],energia:5,fatiga:2,dolor:'',duracion:50},
+      {id:'s9',clienteId:'c1',rutina:'Piernas',fecha:'2025-06-26',ejercicios:[
+        {nombre:'Sentadilla libre',grupo:'Cuádriceps',maquinaId:null,maquinaNombre:'',repsMin:5,repsMax:8,series:[{peso:105,reps:6,rir:1},{peso:105,reps:5,rir:1},{peso:102,reps:5,rir:0}],notas:'Nueva marca'},
+        {nombre:'Prensa 45°',grupo:'Cuádriceps',maquinaId:'mq3',maquinaNombre:'Prensa 45°',repsMin:8,repsMax:12,series:[{peso:160,reps:8,rir:2},{peso:160,reps:7,rir:1},{peso:155,reps:7,rir:1}],notas:''}
+      ],energia:4,fatiga:3,dolor:'',duracion:60},
+      {id:'s10',clienteId:'c2',rutina:'Cuerpo completo',fecha:'2025-06-05',ejercicios:[
+        {nombre:'Sentadilla goblet',grupo:'Cuádriceps',maquinaId:null,maquinaNombre:'',repsMin:10,repsMax:15,series:[{peso:16,reps:12,rir:3},{peso:16,reps:12,rir:3},{peso:20,reps:10,rir:2}],notas:''}
+      ],energia:3,fatiga:2,dolor:'',duracion:45},
+      {id:'s11',clienteId:'c2',rutina:'Cuerpo completo',fecha:'2025-06-12',ejercicios:[
+        {nombre:'Sentadilla goblet',grupo:'Cuádriceps',maquinaId:null,maquinaNombre:'',repsMin:10,repsMax:15,series:[{peso:20,reps:12,rir:3},{peso:20,reps:12,rir:2},{peso:24,reps:10,rir:2}],notas:''}
+      ],energia:4,fatiga:2,dolor:'',duracion:47},
+      {id:'s12',clienteId:'c2',rutina:'Cuerpo completo',fecha:'2025-06-19',ejercicios:[
+        {nombre:'Sentadilla goblet',grupo:'Cuádriceps',maquinaId:null,maquinaNombre:'',repsMin:10,repsMax:15,series:[{peso:24,reps:12,rir:2},{peso:24,reps:11,rir:2},{peso:24,reps:10,rir:1}],notas:''}
+      ],energia:3,fatiga:3,dolor:'',duracion:44},
+      {id:'s13',clienteId:'c2',rutina:'Cuerpo completo',fecha:'2025-06-26',ejercicios:[
+        {nombre:'Sentadilla goblet',grupo:'Cuádriceps',maquinaId:null,maquinaNombre:'',repsMin:10,repsMax:15,series:[{peso:28,reps:10,rir:2},{peso:28,reps:10,rir:2},{peso:28,reps:9,rir:1}],notas:'Subió de KB'}
+      ],energia:4,fatiga:2,dolor:'',duracion:46}
+    ];
+    saveDB();
+  }
+  refreshSelects();
+  refreshMaquinaSelect();
+  loadDriveConfig();
+  updateDriveUI();
+  renderHome();
+}
+
+init();
+</script>
+</body>
+</html>
