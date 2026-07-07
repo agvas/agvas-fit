@@ -254,6 +254,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
           <div style="flex:1">
             <div style="font-size:15px;font-weight:600" id="ej-nombre-display">Sin ejercicio</div>
             <div style="font-size:13px;color:var(--text3);margin-top:2px" id="ej-meta-display"></div>
+            <span id="ej-metodo-badge" style="display:none;background:var(--amber-light);color:var(--amber);font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px;margin-top:5px"></span>
           </div>
         </div>
       </div>
@@ -470,7 +471,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
     <div class="modal-title">Ejercicio</div>
     <div class="field"><label>Nombre del ejercicio</label><input type="text" id="ej-nombre-input" placeholder="Ej: Press banca barra"></div>
     <div class="field"><label>Grupo muscular</label>
-      <select id="ej-grupo">
+      <select id="ej-grupo" onchange="onGrupoChange()">
         <option>Pecho</option><option>Espalda</option><option>Hombros</option>
         <option>Bíceps</option><option>Tríceps</option><option>Cuádriceps</option>
         <option>Isquios / Glúteos</option><option>Pantorrillas</option><option>Core</option>
@@ -481,6 +482,10 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
         <option value="">Sin máquina / barra / mancuernas</option>
       </select>
     </div>
+    <!-- Botón para agregar nueva máquina sin salir del modal -->
+    <button type="button" class="btn btn-ghost btn-sm" style="margin-bottom:12px" onclick="abrirNuevaMaquinaDesdeEjercicio()">
+      + Agregar nueva máquina al catálogo
+    </button>
     <!-- Preview de foto de máquina -->
     <div id="ej-maquina-preview" style="display:none;margin-bottom:12px">
       <img id="ej-maquina-prev-img" src="" style="width:100%;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--border)">
@@ -488,6 +493,20 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
     <div class="grid2">
       <div class="field"><label>Reps mín</label><input type="number" id="ej-reps-min" placeholder="8" min="1" inputmode="numeric"></div>
       <div class="field"><label>Reps máx</label><input type="number" id="ej-reps-max" placeholder="12" min="1" inputmode="numeric"></div>
+    </div>
+    <div class="field"><label>Método de entrenamiento</label>
+      <select id="ej-metodo">
+        <option value="">Series convencionales</option>
+        <option value="Biserie">Biserie (superset)</option>
+        <option value="Drop set">Drop set</option>
+        <option value="Rest pause">Rest pause</option>
+        <option value="Series gigantes">Series gigantes</option>
+        <option value="Cluster sets">Cluster sets</option>
+        <option value="21s">21s</option>
+        <option value="Isométrico">Isométrico</option>
+        <option value="Excéntrico">Excéntrico acentuado</option>
+        <option value="Myo-reps">Myo-reps</option>
+      </select>
     </div>
     <div class="grid2">
       <button class="btn btn-ghost" onclick="closeModal('modal-ejercicio')">Cancelar</button>
@@ -1144,11 +1163,19 @@ function updateTimer(){
 }
 
 function openModalEjercicio(){
-  refreshMaquinaSelect();
+  const grupo = document.getElementById('ej-grupo').value;
+  refreshMaquinaSelect(grupo);
   document.getElementById('ej-nombre-input').value='';
   document.getElementById('ej-maquina-preview').style.display='none';
   openModal('modal-ejercicio');
   setTimeout(()=>document.getElementById('ej-nombre-input').focus(),300);
+}
+
+function onGrupoChange(){
+  const grupo = document.getElementById('ej-grupo').value;
+  refreshMaquinaSelect(grupo);
+  document.getElementById('ej-maquina-sel').value='';
+  document.getElementById('ej-maquina-preview').style.display='none';
 }
 
 function previewMaquinaEnEjercicio(){
@@ -1172,6 +1199,7 @@ function confirmarEjercicio(){
   const maq=maqId?db.maquinas.find(m=>m.id===maqId):null;
   ejercicioActual={nombre,grupo:document.getElementById('ej-grupo').value,
     maquinaId:maqId||null,maquinaNombre:maq?maq.nombre:'',
+    metodo:document.getElementById('ej-metodo').value||'',
     repsMin:parseInt(document.getElementById('ej-reps-min').value)||8,
     repsMax:parseInt(document.getElementById('ej-reps-max').value)||12,
     series:[],notas:''};
@@ -1187,6 +1215,14 @@ function renderEjercicioActual(){
   document.getElementById('ej-num-label').textContent=`Ejercicio ${n}`;
   document.getElementById('ej-nombre-display').textContent=ejercicioActual.nombre;
   document.getElementById('ej-meta-display').textContent=`${ejercicioActual.grupo}${ejercicioActual.maquinaNombre?' · '+ejercicioActual.maquinaNombre:''} · ${ejercicioActual.repsMin}–${ejercicioActual.repsMax} reps`;
+  // Badge de método si aplica
+  const metEl = document.getElementById('ej-metodo-badge');
+  if(metEl){
+    if(ejercicioActual.metodo){
+      metEl.textContent = ejercicioActual.metodo;
+      metEl.style.display='inline-flex';
+    } else metEl.style.display='none';
+  }
   // Mostrar thumb de la máquina
   const thumb=document.getElementById('ej-maquina-thumb');
   const timg=document.getElementById('ej-maquina-img');
@@ -1311,6 +1347,15 @@ function previewMaquinaFoto(input){
   reader.readAsDataURL(file);
 }
 
+function abrirNuevaMaquinaDesdeEjercicio(){
+  window._volverAEjercicio = true;
+  closeModal('modal-ejercicio');
+  resetModalMaquina();
+  const grupoActual = document.getElementById('ej-grupo')?.value;
+  if(grupoActual){ const mg=document.getElementById('mq-grupo'); if(mg) mg.value=grupoActual; }
+  openModal('modal-nueva-maquina');
+}
+
 function guardarMaquina(){
   const nombre=document.getElementById('mq-nombre').value.trim();
   if(!nombre){toast('Escribí el nombre del equipo');return;}
@@ -1325,9 +1370,24 @@ function guardarMaquina(){
   };
   if(maquinaEditandoId){ const idx=db.maquinas.findIndex(m=>m.id===maquinaEditandoId); if(idx>-1) db.maquinas[idx]=mq; }
   else db.maquinas.push(mq);
-  saveDB(); resetModalMaquina(); closeModal('modal-nueva-maquina'); renderEquipos(); refreshMaquinaSelect();
+  saveDB(); resetModalMaquina(); closeModal('modal-nueva-maquina');
   toast(maquinaEditandoId?'Equipo actualizado ✓':'Equipo guardado ✓');
   maquinaEditandoId=null;
+
+  // Si vinimos desde el modal de ejercicio, volver a él con la nueva máquina seleccionada
+  if(window._volverAEjercicio){
+    window._volverAEjercicio = false;
+    const grupo = document.getElementById('ej-grupo')?.value;
+    refreshMaquinaSelect(grupo);
+    // Seleccionar la máquina recién creada
+    const sel = document.getElementById('ej-maquina-sel');
+    if(sel) sel.value = mq.id;
+    previewMaquinaEnEjercicio();
+    openModal('modal-ejercicio');
+  } else {
+    renderEquipos();
+    refreshMaquinaSelect();
+  }
 }
 
 function resetModalMaquina(){
@@ -1387,10 +1447,13 @@ function eliminarMaquinaActual(){
   toast('Equipo eliminado'); maquinaEditandoId=null;
 }
 
-function refreshMaquinaSelect(){
+function refreshMaquinaSelect(grupoFiltro){
   const sel=document.getElementById('ej-maquina-sel'); if(!sel) return;
   while(sel.options.length>1) sel.remove(1);
-  db.maquinas.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=m.nombre; sel.appendChild(o); });
+  const maquinas = grupoFiltro
+    ? db.maquinas.filter(m => m.grupo === grupoFiltro || m.grupo === 'Múltiple')
+    : db.maquinas;
+  maquinas.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=m.nombre+' ('+m.tipo+')'; sel.appendChild(o); });
 }
 
 // ══════════════ HISTORIAL ══════════════
@@ -1509,10 +1572,12 @@ function renderProgresion(){
   // Asistencia
   let asistHtml=renderAsistencia(sesiones);
 
+  const sesMes=sesiones.filter(s=>s.fecha.slice(0,7)===new Date().toISOString().slice(0,7)).length;
+
   cont.innerHTML=`
     <div class="stat-grid">
-      <div class="stat-card"><div class="stat-val">${sesiones.length}</div><div class="stat-lbl">Sesiones</div></div>
-      <div class="stat-card"><div class="stat-val">${Math.round(totalVol/1000)}t</div><div class="stat-lbl">Volumen total</div></div>
+      <div class="stat-card"><div class="stat-val">${sesiones.length}</div><div class="stat-lbl">Sesiones totales</div></div>
+      <div class="stat-card"><div class="stat-val">${sesMes}</div><div class="stat-lbl">Este mes</div></div>
       <div class="stat-card"><div class="stat-val">${rirProm}</div><div class="stat-lbl">RIR promedio</div></div>
       <div class="stat-card"><div class="stat-val">${bestMarca}kg</div><div class="stat-lbl">Mejor marca</div></div>
     </div>
@@ -1626,21 +1691,29 @@ function drawCargaChart(ejMap, nombre){
 
 function renderAsistencia(sesiones){
   if(!sesiones.length) return '<div class="empty-sub" style="padding:16px">Sin sesiones</div>';
-  const semMap={};
-  sesiones.forEach(s=>{ const d=new Date(s.fecha), mon=getMonday(d); if(!semMap[mon]) semMap[mon]=[]; semMap[mon].push(s); });
-  const keys=Object.keys(semMap).sort().reverse();
-  return keys.slice(0,8).map(sem=>{
-    const sems=semMap[sem];
-    const tv=sems.reduce((a,s)=>a+s.ejercicios.reduce((b,e)=>b+e.series.reduce((c,sr)=>c+sr.peso*sr.reps,0),0),0);
+  // Mostrar cada sesión individualmente ordenada por fecha desc
+  const sorted=[...sesiones].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const diasSemana=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  return sorted.slice(0,20).map(s=>{
+    const d=new Date(s.fecha+'T12:00:00');
+    const diaNombre=diasSemana[d.getDay()];
+    const fechaFmt=`${diaNombre} ${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+    // Grupos musculares trabajados (únicos)
+    const grupos=[...new Set(s.ejercicios.map(e=>e.grupo))];
+    const totalS=s.ejercicios.reduce((a,e)=>a+e.series.length,0);
     return `<div class="asist-row">
       <div class="asist-dot dot-present"></div>
       <div style="flex:1">
-        <div style="font-size:14px;font-weight:600">Sem del ${sem}</div>
-        <div style="font-size:12px;color:var(--text3)">${sems.length} sesión${sems.length>1?'es':''} · ${sems.map(s=>s.rutina.split('/')[0].trim()).join(', ')}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${fechaFmt}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px;font-weight:500">${s.rutina}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">
+          ${grupos.map(g=>`<span style="background:var(--blue-light);color:var(--blue);font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px">${g}</span>`).join('')}
+        </div>
       </div>
-      <div style="text-align:right">
-        <div style="font-size:13px;font-weight:700;color:var(--text)">${(Math.round(tv/100)/10)}t</div>
-        <div style="font-size:11px;color:var(--text3)">vol</div>
+      <div style="text-align:right;flex-shrink:0;padding-left:8px">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${s.ejercicios.length} ej.</div>
+        <div style="font-size:11px;color:var(--text3)">${totalS} series</div>
+        ${s.duracion?`<div style="font-size:11px;color:var(--text3)">${s.duracion}min</div>`:''}
       </div>
     </div>`;
   }).join('');
