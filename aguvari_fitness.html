@@ -1153,6 +1153,141 @@ function calcStreak(clienteId){
   return streak;
 }
 
+// ══════════════ PROTECCIÓN SESIÓN EN CURSO ══════════════
+const SESION_KEY = 'agvasfit_sesion_en_curso';
+
+// Capa 1: guardar estado completo cada vez que hay un cambio
+function guardarSesionEnCurso(){
+  if(!sesionActiva) return;
+  // Leer valores actuales de los inputs antes de guardar
+  if(ejercicioActual) actualizarVol();
+  try{
+    const estado = {
+      sesionActiva: {...sesionActiva},
+      ejercicioActual: ejercicioActual ? {...ejercicioActual} : null,
+      timerElapsed: timerStart ? Math.floor((Date.now()-timerStart)/1000) : 0,
+      totalSeries,
+      sensActiva: {...sensActiva},
+      savedAt: Date.now()
+    };
+    localStorage.setItem(SESION_KEY, JSON.stringify(estado));
+  }catch(e){}
+}
+
+// Capa 2: detectar y restaurar sesión al abrir la app
+function recuperarSesionEnCurso(){
+  try{
+    const raw = localStorage.getItem(SESION_KEY);
+    if(!raw) return false;
+    const estado = JSON.parse(raw);
+    if(!estado.sesionActiva) return false;
+
+    // Verificar que la sesión no sea de hace más de 12 horas
+    const horas = (Date.now() - estado.savedAt) / 3600000;
+    if(horas > 12){
+      localStorage.removeItem(SESION_KEY);
+      return false;
+    }
+
+    // Mostrar banner de recuperación
+    const cli = db.clientes.find(c=>c.id===estado.sesionActiva.clienteId);
+    const nombreCli = cli ? cli.nombre : 'cliente';
+    const minutos = Math.round((Date.now()-estado.savedAt)/60000);
+    const tiempoTexto = minutos < 1 ? 'hace unos segundos' : minutos === 1 ? 'hace 1 minuto' : `hace ${minutos} minutos`;
+
+    // Banner de recuperación
+    const banner = document.createElement('div');
+    banner.id = 'banner-recuperacion';
+    banner.style.cssText = `position:fixed;top:0;left:0;right:0;z-index:999;background:#1a6fd4;color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.3)`;
+    banner.innerHTML = `
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700">⚡ Sesión recuperada</div>
+        <div style="font-size:12px;opacity:.85">${nombreCli} · ${estado.sesionActiva.rutina} · guardada ${tiempoTexto}</div>
+      </div>
+      <button onclick="confirmarRecuperacion()" style="background:#fff;color:#1a6fd4;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer">Continuar</button>
+      <button onclick="descartarSesionRecuperada()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:7px 10px;font-size:13px;cursor:pointer">✕</button>
+    `;
+    document.body.appendChild(banner);
+
+    // Guardar estado para cuando el usuario confirme
+    window._estadoRecuperado = estado;
+    return true;
+  }catch(e){ return false; }
+}
+
+function confirmarRecuperacion(){
+  const estado = window._estadoRecuperado;
+  if(!estado) return;
+
+  // Eliminar banner
+  document.getElementById('banner-recuperacion')?.remove();
+
+  // Restaurar estado
+  sesionActiva    = estado.sesionActiva;
+  ejercicioActual = estado.ejercicioActual;
+  totalSeries     = estado.totalSeries || 0;
+  sensActiva      = estado.sensActiva || {energia:3,fatiga:2};
+
+  const cli = db.clientes.find(c=>c.id===sesionActiva.clienteId);
+  if(cli){
+    document.getElementById('sh-avatar').textContent = initials(cli.nombre);
+    document.getElementById('sh-name').textContent   = cli.nombre+' · '+sesionActiva.rutina;
+  }
+
+  // Ir a pantalla de sesión
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-sesion').classList.add('active');
+  document.getElementById('topbar-title').textContent='Sesión activa';
+
+  // Reiniciar timer desde donde estaba
+  const elapsed = estado.timerElapsed || 0;
+  timerStart = Date.now() - elapsed*1000;
+  timerInterval = setInterval(updateTimer,1000);
+
+  // Restaurar UI de series si hay ejercicio activo
+  if(ejercicioActual && ejercicioActual.series.length>0){
+    renderEjercicioActual();
+    // Re-renderizar las series guardadas
+    ejercicioActual.series.forEach((sr,i)=>{
+      const n = i+1;
+      const row=document.createElement('div');
+      row.className='serie-row'; row.id='sr-'+n;
+      row.innerHTML=`<div class="serie-num">${n}</div>
+        <input type="number" class="serie-input" id="peso-${n}" value="${sr.peso||''}" min="0" step="0.5" inputmode="decimal" onchange="actualizarVol();guardarSesionEnCurso()">
+        <input type="number" class="serie-input" id="reps-${n}" value="${sr.reps||''}" min="1" max="60" inputmode="numeric" onchange="actualizarVol();guardarSesionEnCurso()">
+        <select class="rir-select" id="rir-${n}" onchange="colorearRIR(${n});guardarSesionEnCurso()">
+          <option value="4" ${sr.rir===4?'selected':''}>4+</option>
+          <option value="3" ${sr.rir===3?'selected':''}>3</option>
+          <option value="2" ${sr.rir===2?'selected':''}>2</option>
+          <option value="1" ${sr.rir===1?'selected':''}>1</option>
+          <option value="0" ${sr.rir===0?'selected':''}>0</option>
+        </select>`;
+      document.getElementById('series-live').appendChild(row);
+      colorearRIR(n);
+    });
+    actualizarVol();
+  }
+
+  toast('Sesión recuperada ✓');
+  window._estadoRecuperado = null;
+}
+
+function descartarSesionRecuperada(){
+  document.getElementById('banner-recuperacion')?.remove();
+  localStorage.removeItem(SESION_KEY);
+  window._estadoRecuperado = null;
+  toast('Sesión descartada');
+}
+
+// Capa 3: autoguardado cada 30 segundos
+setInterval(()=>{ if(sesionActiva) guardarSesionEnCurso(); }, 30000);
+
+// Limpiar el backup cuando la sesión finaliza correctamente
+function limpiarSesionEnCurso(){
+  localStorage.removeItem(SESION_KEY);
+}
+
 // ══════════════ SESIÓN ══════════════
 function openNuevaSesion(){
   if(!db.clientes.length){ toast('Agregá un cliente primero'); openModal('modal-nuevo-cliente'); return; }
@@ -1178,6 +1313,7 @@ function iniciarSesion(){
   timerStart=Date.now();
   timerInterval=setInterval(updateTimer,1000);
   openModalEjercicio();
+  guardarSesionEnCurso();
 }
 
 function updateTimer(){
@@ -1231,6 +1367,7 @@ function confirmarEjercicio(){
   renderEjercicioActual();
   mostrarHintProgresion();
   addSerieViva();
+  guardarSesionEnCurso();
 }
 
 function renderEjercicioActual(){
@@ -1280,6 +1417,7 @@ function addSerieViva(){
   if(!prev) setTimeout(()=>document.getElementById(`peso-${n}`)?.focus(),100);
   else setTimeout(()=>document.getElementById(`reps-${n}`)?.focus(),100);
   actualizarVol();
+  guardarSesionEnCurso();
 }
 
 function colorearRIR(n){
@@ -1289,6 +1427,7 @@ function colorearRIR(n){
   if(v===0) sel.classList.add('rir-0');
   else if(v===1) sel.classList.add('rir-1');
   else if(v===2) sel.classList.add('rir-2');
+  guardarSesionEnCurso();
 }
 
 function actualizarVol(){
@@ -1305,6 +1444,7 @@ function actualizarVol(){
     }
   }
   document.getElementById('vol-display').textContent=`Vol: ${Math.round(vol).toLocaleString()} kg`;
+  guardarSesionEnCurso();
 }
 
 function mostrarHintProgresion(){
@@ -1328,6 +1468,7 @@ function mostrarHintProgresion(){
 
 function agregarOtroEjercicio(){
   if(ejercicioActual){ ejercicioActual.notas=document.getElementById('notas-ejercicio').value; if(ejercicioActual.series.length>0) sesionActiva.ejercicios.push({...ejercicioActual}); ejercicioActual=null; }
+  guardarSesionEnCurso();
   openModalEjercicio();
 }
 
@@ -1339,6 +1480,7 @@ function finalizarSesion(){
   sesionActiva.duracion=Math.round((Date.now()-sesionActiva.inicio)/60000);
   sesionActiva.energia=sensActiva.energia; sesionActiva.fatiga=sensActiva.fatiga;
   db.sesiones.push({...sesionActiva}); saveDB();
+  limpiarSesionEnCurso();
   sesionActiva=null; ejercicioActual=null; totalSeries=0;
   toast('Sesión guardada ✓');
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -1778,10 +1920,9 @@ function refreshSelects(){
 // ══════════════ INIT + DEMO DATA ══════════════
 function init(){
   loadDB();
-  checkOAuthCallback(); // leer token si Google nos acaba de redirigir
+  checkOAuthCallback();
+  recuperarSesionEnCurso(); // ← detectar sesión interrumpida
 
-  // Si hay Client ID guardado pero no hay token → intentar reconexión silenciosa
-  // Solo si NO venimos de un callback (evitar loop)
   if(driveClientId && !driveAccessToken && !window.location.hash.includes('access_token')){
     // Pequeño delay para que la app cargue primero visualmente
     setTimeout(() => conectarDrive(true), 800);
